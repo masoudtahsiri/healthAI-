@@ -1,0 +1,401 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1001001 /* HealthAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001002 /* HealthAIApp.swift */; };
+		A1001003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001004 /* ContentView.swift */; };
+		A1001005 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001006 /* UserProfile.swift */; };
+		A1001007 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001008 /* HealthKitManager.swift */; };
+		A1001009 /* AICore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001010 /* AICore.swift */; };
+		A1001011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1001012 /* Assets.xcassets */; };
+		A1001029 /* AppleIntelligence.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001020 /* AppleIntelligence.swift */; };
+		A1001032 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000036 /* OnboardingView.swift */; };
+		A1001033 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000037 /* DashboardView.swift */; };
+		A1001041 /* DateRangePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001042 /* DateRangePicker.swift */; };
+		A1001043 /* ResponsiveLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001044 /* ResponsiveLayout.swift */; };
+		A1001045 /* HealthDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001046 /* HealthDataCache.swift */; };
+		A1001047 /* HealthKitManager+Caching.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001048 /* HealthKitManager+Caching.swift */; };
+		A1001049 /* BodyCompositionCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001050 /* BodyCompositionCalculator.swift */; };
+		A1001051 /* PatternAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001052 /* PatternAnalyzer.swift */; };
+		A1001053 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001054 /* SettingsView.swift */; };
+		A1001055 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001056 /* SplashView.swift */; };
+		AD1ADBEE2EB16A7300FEBCFC /* FoundationModels.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AD1ADBED2EB1664500FEBCFC /* FoundationModels.framework */; };
+		ADAA4F642EB9516D003C0930 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = ADAA4F632EB9516D003C0930 /* PrivacyInfo.xcprivacy */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A1000036 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		A1000037 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		A1001002 /* HealthAIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthAIApp.swift; sourceTree = "<group>"; };
+		A1001004 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A1001006 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		A1001008 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		A1001010 /* AICore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICore.swift; sourceTree = "<group>"; };
+		A1001012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A1001014 /* HealthAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HealthAI.entitlements; sourceTree = "<group>"; };
+		A1001015 /* HealthAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "HealthAI.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1001020 /* AppleIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligence.swift; sourceTree = "<group>"; };
+		A1001042 /* DateRangePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateRangePicker.swift; sourceTree = "<group>"; };
+		A1001044 /* ResponsiveLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponsiveLayout.swift; sourceTree = "<group>"; };
+		A1001046 /* HealthDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDataCache.swift; sourceTree = "<group>"; };
+		A1001048 /* HealthKitManager+Caching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthKitManager+Caching.swift"; sourceTree = "<group>"; };
+		A1001050 /* BodyCompositionCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompositionCalculator.swift; sourceTree = "<group>"; };
+		A1001052 /* PatternAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternAnalyzer.swift; sourceTree = "<group>"; };
+		A1001054 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A1001056 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		AD1ADBED2EB1664500FEBCFC /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/FoundationModels.framework; sourceTree = DEVELOPER_DIR; };
+		ADAA4F632EB9516D003C0930 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1001040 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AD1ADBEE2EB16A7300FEBCFC /* FoundationModels.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1001000 = {
+			isa = PBXGroup;
+			children = (
+				A1001013 /* HealthAI */,
+				AD1ADBEC2EB1664500FEBCFC /* Frameworks */,
+				A1001038 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1001013 /* HealthAI */ = {
+			isa = PBXGroup;
+			children = (
+				ADAA4F632EB9516D003C0930 /* PrivacyInfo.xcprivacy */,
+				A1001002 /* HealthAIApp.swift */,
+				A1001024 /* Views */,
+				A1001025 /* Models */,
+				A1001026 /* Managers */,
+				A1001012 /* Assets.xcassets */,
+				A1001014 /* HealthAI.entitlements */,
+			);
+			path = HealthAI;
+			sourceTree = "<group>";
+		};
+		A1001024 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A1001004 /* ContentView.swift */,
+				A1001056 /* SplashView.swift */,
+				A1000036 /* OnboardingView.swift */,
+				A1000037 /* DashboardView.swift */,
+				A1001054 /* SettingsView.swift */,
+				A1001042 /* DateRangePicker.swift */,
+				A1001044 /* ResponsiveLayout.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A1001025 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A1001006 /* UserProfile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A1001026 /* Managers */ = {
+			isa = PBXGroup;
+			children = (
+				A1001008 /* HealthKitManager.swift */,
+				A1001048 /* HealthKitManager+Caching.swift */,
+				A1001010 /* AICore.swift */,
+				A1001020 /* AppleIntelligence.swift */,
+				A1001046 /* HealthDataCache.swift */,
+				A1001050 /* BodyCompositionCalculator.swift */,
+				A1001052 /* PatternAnalyzer.swift */,
+			);
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		A1001038 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1001015 /* HealthAI.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AD1ADBEC2EB1664500FEBCFC /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AD1ADBED2EB1664500FEBCFC /* FoundationModels.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1001016 /* HealthAI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1001017 /* Build configuration list for PBXNativeTarget "HealthAI" */;
+			buildPhases = (
+				A1001018 /* Sources */,
+				A1001022 /* Resources */,
+				A1001040 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HealthAI;
+			packageProductDependencies = (
+			);
+			productName = HealthAI;
+			productReference = A1001015 /* HealthAI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1001035 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					A1001016 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A1001021 /* Build configuration list for PBXProject "HealthAI" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A1001000;
+			productRefGroup = A1001038 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1001016 /* HealthAI */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1001022 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ADAA4F642EB9516D003C0930 /* PrivacyInfo.xcprivacy in Resources */,
+				A1001011 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1001018 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1001001 /* HealthAIApp.swift in Sources */,
+				A1001003 /* ContentView.swift in Sources */,
+				A1001005 /* UserProfile.swift in Sources */,
+				A1001007 /* HealthKitManager.swift in Sources */,
+				A1001047 /* HealthKitManager+Caching.swift in Sources */,
+				A1001009 /* AICore.swift in Sources */,
+				A1001032 /* OnboardingView.swift in Sources */,
+				A1001033 /* DashboardView.swift in Sources */,
+				A1001041 /* DateRangePicker.swift in Sources */,
+				A1001043 /* ResponsiveLayout.swift in Sources */,
+				A1001029 /* AppleIntelligence.swift in Sources */,
+				A1001045 /* HealthDataCache.swift in Sources */,
+				A1001049 /* BodyCompositionCalculator.swift in Sources */,
+				A1001051 /* PatternAnalyzer.swift in Sources */,
+				A1001053 /* SettingsView.swift in Sources */,
+				A1001055 /* SplashView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A1001023 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+			CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+			CODE_SIGN_ENTITLEMENTS = HealthAI/HealthAI.entitlements;
+			CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = F848GC39JW;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "HealthAI+";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "We need access to your health data to provide personalized insights.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "We'll save your fitness goals and progress to HealthKit.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsMultipleScenes = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.healthai.app;
+				PRODUCT_NAME = HealthAI;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1001034 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = HealthAI/HealthAI.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = F848GC39JW;
+				ENABLE_PREVIEWS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "HealthAI+";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "We need access to your health data to provide personalized insights.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "We'll save your fitness goals and progress to HealthKit.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsMultipleScenes = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.healthai.app;
+				PRODUCT_NAME = HealthAI;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1001017 /* Build configuration list for PBXNativeTarget "HealthAI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1001023 /* Debug */,
+				A1001034 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1001021 /* Build configuration list for PBXProject "HealthAI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1001023 /* Debug */,
+				A1001034 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1001035 /* Project object */;
+}
