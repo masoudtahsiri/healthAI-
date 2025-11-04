@@ -50,7 +50,7 @@ struct SplashView: View {
             )
             .ignoresSafeArea()
             .animation(
-                Animation.easeInOut(duration: 3.0)
+                Animation.easeInOut(duration: 8.0)
                     .repeatForever(autoreverses: true),
                 value: isAnimating
             )
@@ -62,7 +62,7 @@ struct SplashView: View {
                 .blur(radius: 50)
                 .offset(x: isAnimating ? -50 : 50, y: isAnimating ? -100 : 100)
                 .animation(
-                    Animation.easeInOut(duration: 4.0)
+                    Animation.easeInOut(duration: 10.0)
                         .repeatForever(autoreverses: true),
                     value: isAnimating
                 )
@@ -73,9 +73,9 @@ struct SplashView: View {
                 .blur(radius: 60)
                 .offset(x: isAnimating ? 50 : -50, y: isAnimating ? 100 : -100)
                 .animation(
-                    Animation.easeInOut(duration: 5.0)
+                    Animation.easeInOut(duration: 12.0)
                         .repeatForever(autoreverses: true)
-                        .delay(0.5),
+                        .delay(1.0),
                     value: isAnimating
                 )
             
@@ -151,7 +151,6 @@ struct SplashView: View {
                             .opacity(loadingMessageOpacity)
                             .frame(height: 28)
                             .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                            .transition(.opacity)
                     }
                 }
                 
@@ -224,31 +223,37 @@ struct SplashView: View {
         // Calculate timing: splash screen lasts 20 seconds
         // 4 messages, each showing for 5 seconds
         let messageDuration: TimeInterval = 5.0 // 5 seconds per message
-        let fadeDuration: TimeInterval = 0.5 // Consistent fade duration for all transitions
+        let fadeOutDuration: TimeInterval = 0.8 // Longer fade out for smoother transition
+        let fadeInDuration: TimeInterval = 0.6 // Slightly shorter fade in
         
         // Show first message after text appears
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            withAnimation(.easeInOut(duration: fadeDuration)) {
+            withAnimation(.easeOut(duration: fadeInDuration)) {
                 self.loadingMessageOpacity = 1.0
             }
         }
         
-        // Sequence through all messages with equal durations and consistent fade transitions
+        // Sequence through all messages with equal durations and smooth fade transitions
         for index in 1..<loadingMessages.count {
             // Calculate when this message should appear (equal spacing: 5 seconds each)
             let messageStartTime = 0.8 + (Double(index) * messageDuration)
+            let fadeOutStartTime = messageStartTime - fadeOutDuration
             
-            // Fade out previous message smoothly (half fade duration before transition)
-            DispatchQueue.main.asyncAfter(deadline: .now() + messageStartTime - fadeDuration) {
-                withAnimation(.easeInOut(duration: fadeDuration)) {
+            // Start fade out
+            DispatchQueue.main.asyncAfter(deadline: .now() + fadeOutStartTime) {
+                withAnimation(.easeIn(duration: fadeOutDuration)) {
                     self.loadingMessageOpacity = 0
                 }
             }
             
-            // Change to next message and fade in smoothly (same fade duration)
+            // Change message index mid-way through fade out when opacity is lowest
+            DispatchQueue.main.asyncAfter(deadline: .now() + fadeOutStartTime + (fadeOutDuration * 0.6)) {
+                self.currentLoadingMessageIndex = index
+            }
+            
+            // Fade in the new message after fade out completes
             DispatchQueue.main.asyncAfter(deadline: .now() + messageStartTime) {
-                withAnimation(.easeInOut(duration: fadeDuration)) {
-                    self.currentLoadingMessageIndex = index
+                withAnimation(.easeOut(duration: fadeInDuration)) {
                     self.loadingMessageOpacity = 1.0
                 }
             }

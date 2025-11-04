@@ -61,3 +61,4 @@ echo "- Verify all icon slots show previews (not blank)"
 echo "- Try restarting your Mac if persistent"
 
 
+

@@ -18,11 +18,9 @@ struct OnboardingView: View {
     // Fitness goals (multi-select)
     @State private var selectedGoals: Set<FitnessGoal> = []
     
-    @State private var isAnimating = false
-    
     var body: some View {
         ZStack {
-            // Animated gradient background matching splash screen style
+            // Fixed gradient background matching splash screen style
             LinearGradient(
                 gradient: Gradient(colors: [
                     Color(red: 0.1, green: 0.3, blue: 0.6),      // Deep athletic blue
@@ -30,39 +28,23 @@ struct OnboardingView: View {
                     Color(red: 0.2, green: 0.7, blue: 0.9),      // Bright cyan/teal
                     Color(red: 0.4, green: 0.8, blue: 1.0)       // Electric cyan
                 ]),
-                startPoint: isAnimating ? .topLeading : .bottomTrailing,
-                endPoint: isAnimating ? .bottomTrailing : .topLeading
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
-            .animation(
-                Animation.easeInOut(duration: 3.0)
-                    .repeatForever(autoreverses: true),
-                value: isAnimating
-            )
             
-            // Subtle animated background circles
+            // Subtle static background circles
             Circle()
                 .fill(Color.white.opacity(0.1))
                 .frame(width: 300, height: 300)
                 .blur(radius: 50)
-                .offset(x: isAnimating ? -50 : 50, y: isAnimating ? -100 : 100)
-                .animation(
-                    Animation.easeInOut(duration: 4.0)
-                        .repeatForever(autoreverses: true),
-                    value: isAnimating
-                )
+                .offset(x: -50, y: -100)
             
             Circle()
                 .fill(Color.white.opacity(0.05))
                 .frame(width: 400, height: 400)
                 .blur(radius: 60)
-                .offset(x: isAnimating ? 50 : -50, y: isAnimating ? 100 : -100)
-                .animation(
-                    Animation.easeInOut(duration: 5.0)
-                        .repeatForever(autoreverses: true)
-                        .delay(0.5),
-                    value: isAnimating
-                )
+                .offset(x: 50, y: 100)
             
             if currentStep == 0 {
                 welcomeView
@@ -73,9 +55,6 @@ struct OnboardingView: View {
             } else if currentStep == 3 {
                 goalSelectionView
             }
-        }
-        .onAppear {
-            isAnimating = true
         }
     }
     
@@ -99,18 +78,10 @@ struct OnboardingView: View {
                     )
                     .frame(width: 140, height: 140)
                 
-                Image(systemName: "heart.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white,
-                                Color.white.opacity(0.8)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                Image("SplashLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 120, height: 120)
                     .shadow(color: Color.white.opacity(0.5), radius: 20, x: 0, y: 0)
             }
             
@@ -250,184 +221,227 @@ struct OnboardingView: View {
     private var syncingHealthDataView: some View {
         VStack(spacing: 30) {
             if isLoadingHealthKitData {
-                // Loading state
-                VStack(spacing: 24) {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .scaleEffect(2.0)
-                    
-                    Text("Syncing with Health App")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.white)
-                    
-                    Text("Fetching your health data...")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white.opacity(0.8))
-                        .padding(.top, 8)
-                }
-                .padding(.vertical, 60)
+                loadingHealthDataView
             } else {
-                // Show synced data
-                VStack(spacing: 30) {
-                    VStack(alignment: .leading, spacing: 15) {
-                        // Date of Birth - Editable
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Image(systemName: "calendar")
-                                    .foregroundColor(dateOfBirth != nil ? .green : .gray)
-                                    .font(.system(size: 20))
-                                Text("Date of Birth:")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 16, weight: .medium))
-                                Spacer()
-                                if dateOfBirth != nil {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                }
-                            }
-                            
-                            DatePicker(
-                                "Date of Birth",
-                                selection: Binding(
-                                    get: { dateOfBirth ?? Date().addingTimeInterval(-365.25 * 25 * 24 * 60 * 60) }, // Default to 25 years ago
-                                    set: { dateOfBirth = $0 }
-                                ),
-                                displayedComponents: .date
-                            )
-                            .datePickerStyle(.compact)
-                            .accentColor(.white)
-                            .colorScheme(.dark)
-                            .labelsHidden()
-                        }
-                        .padding()
-                        .background(dateOfBirth != nil ? Color.green.opacity(0.15) : Color.white.opacity(0.2))
-                        .cornerRadius(12)
-                        
-                        // Gender
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Image(systemName: "person.fill")
-                                    .foregroundColor(.green)
-                                    .font(.system(size: 20))
-                                Text("Gender:")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 16, weight: .medium))
-                                Spacer()
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                            }
-                            Picker("Gender", selection: $gender) {
-                                ForEach(Gender.allCases, id: \.self) { genderOption in
-                                    Text(genderOption.rawValue).tag(genderOption)
-                                }
-                            }
-                            .pickerStyle(SegmentedPickerStyle())
-                            .accentColor(.white)
-                        }
-                        .padding()
-                        .background(Color.green.opacity(0.15))
-                        .cornerRadius(12)
-                        
-                        // Height - Editable
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "ruler")
-                                    .foregroundColor(height != 170.0 ? .green : .gray)
-                                    .font(.system(size: 20))
-                                Text("Height:")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 16, weight: .medium))
-                                Spacer()
-                                if height != 170.0 {
-                                    Text("\(Int(height)) cm")
-                                        .foregroundColor(.white.opacity(0.9))
-                                        .fontWeight(.bold)
-                                        .font(.system(size: 18))
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                } else {
-                                    Text("\(Int(height)) cm")
-                                        .foregroundColor(.white.opacity(0.9))
-                                        .fontWeight(.bold)
-                                        .font(.system(size: 18))
-                                }
-                            }
-                            
-                            Slider(value: $height, in: 100...220, step: 1)
-                                .tint(.white)
-                        }
-                        .padding()
-                        .background(height != 170.0 ? Color.green.opacity(0.15) : Color.white.opacity(0.2))
-                        .cornerRadius(12)
-                        
-                        // Weight - Editable
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "scalemass")
-                                    .foregroundColor(weight != 70.0 ? .green : .gray)
-                                    .font(.system(size: 20))
-                                Text("Weight:")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 16, weight: .medium))
-                                Spacer()
-                                if weight != 70.0 {
-                                    Text("\(Int(weight)) kg")
-                                        .foregroundColor(.white.opacity(0.9))
-                                        .fontWeight(.bold)
-                                        .font(.system(size: 18))
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                } else {
-                                    Text("\(Int(weight)) kg")
-                                        .foregroundColor(.white.opacity(0.9))
-                                        .fontWeight(.bold)
-                                        .font(.system(size: 18))
-                                }
-                            }
-                            
-                            Slider(value: $weight, in: 30...200, step: 0.5)
-                                .tint(.white)
-                        }
-                        .padding()
-                        .background(weight != 70.0 ? Color.green.opacity(0.15) : Color.white.opacity(0.2))
-                        .cornerRadius(12)
-                    }
-                    .padding(.horizontal, 40)
-                }
-                
-                VStack(spacing: 16) {
-                    Button(action: {
-                        withAnimation { currentStep = 3 }
-                    }) {
-                        HStack {
-                            Spacer()
-                            Text("Continue")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                            Spacer()
-                        }
-                        .padding(.vertical, 16)
-                        .background(Color.white.opacity(0.25))
-                        .cornerRadius(16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                        )
-                    }
-                    
-                    Button(action: {
-                        withAnimation { currentStep = 1 }
-                    }) {
-                        Text("Back")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white.opacity(0.9))
-                    }
-                    .padding(.top, 8)
-                }
-                .padding(.horizontal, 32)
-                .padding(.top, 32)
+                syncedDataView
             }
         }
+    }
+    
+    private var loadingHealthDataView: some View {
+        VStack(spacing: 24) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                .scaleEffect(2.0)
+            
+            Text("Syncing with Health App")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(.white)
+            
+            Text("Fetching your health data...")
+                .font(.system(size: 16))
+                .foregroundColor(.white.opacity(0.8))
+                .padding(.top, 8)
+        }
+        .padding(.vertical, 60)
+    }
+    
+    private var syncedDataView: some View {
+        VStack(spacing: 30) {
+            VStack(alignment: .leading, spacing: 15) {
+                dateOfBirthCard
+                genderCard
+                heightCard
+                weightCard
+            }
+            .padding(.horizontal, 40)
+            
+            actionButtons
+        }
+    }
+    
+    private var dateOfBirthCard: some View {
+        let isFilled = dateOfBirth != nil
+        let backgroundColor = isFilled ? Color.white.opacity(0.3) : Color.white.opacity(0.25)
+        
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "calendar")
+                    .foregroundColor(.white)
+                    .font(.system(size: 22, weight: .semibold))
+                Text("Date of Birth:")
+                    .foregroundColor(.white)
+                    .font(.system(size: 17, weight: .semibold))
+                Spacer()
+                if isFilled {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.system(size: 22))
+                }
+            }
+            
+            DatePicker(
+                "Date of Birth",
+                selection: Binding(
+                    get: { dateOfBirth ?? Date().addingTimeInterval(-365.25 * 25 * 24 * 60 * 60) },
+                    set: { dateOfBirth = $0 }
+                ),
+                displayedComponents: .date
+            )
+            .datePickerStyle(.compact)
+            .accentColor(.white)
+            .colorScheme(.dark)
+            .labelsHidden()
+        }
+        .padding(16)
+        .background(backgroundColor)
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.white.opacity(0.4), lineWidth: 1.5)
+        )
+        .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 2)
+    }
+    
+    private var genderCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "person.fill")
+                    .foregroundColor(.white)
+                    .font(.system(size: 22, weight: .semibold))
+                Text("Gender:")
+                    .foregroundColor(.white)
+                    .font(.system(size: 17, weight: .semibold))
+                Spacer()
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.system(size: 22))
+            }
+            Picker("Gender", selection: $gender) {
+                ForEach(Gender.allCases, id: \.self) { genderOption in
+                    Text(genderOption.rawValue).tag(genderOption)
+                        .foregroundColor(.white)
+                }
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .accentColor(.white)
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.3))
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.white.opacity(0.4), lineWidth: 1.5)
+        )
+        .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 2)
+    }
+    
+    private var heightCard: some View {
+        let isCustomized = height != 170.0
+        let backgroundColor = isCustomized ? Color.white.opacity(0.3) : Color.white.opacity(0.25)
+        
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "ruler")
+                    .foregroundColor(.white)
+                    .font(.system(size: 22, weight: .semibold))
+                Text("Height:")
+                    .foregroundColor(.white)
+                    .font(.system(size: 17, weight: .semibold))
+                Spacer()
+                Text("\(Int(height)) cm")
+                    .foregroundColor(.white)
+                    .fontWeight(.bold)
+                    .font(.system(size: 19))
+                if isCustomized {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.system(size: 22))
+                }
+            }
+            
+            Slider(value: $height, in: 100...220, step: 1)
+                .tint(.white)
+        }
+        .padding(16)
+        .background(backgroundColor)
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.white.opacity(0.4), lineWidth: 1.5)
+        )
+        .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 2)
+    }
+    
+    private var weightCard: some View {
+        let isCustomized = weight != 70.0
+        let backgroundColor = isCustomized ? Color.white.opacity(0.3) : Color.white.opacity(0.25)
+        
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "scalemass")
+                    .foregroundColor(.white)
+                    .font(.system(size: 22, weight: .semibold))
+                Text("Weight:")
+                    .foregroundColor(.white)
+                    .font(.system(size: 17, weight: .semibold))
+                Spacer()
+                Text("\(Int(weight)) kg")
+                    .foregroundColor(.white)
+                    .fontWeight(.bold)
+                    .font(.system(size: 19))
+                if isCustomized {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.system(size: 22))
+                }
+            }
+            
+            Slider(value: $weight, in: 30...200, step: 0.5)
+                .tint(.white)
+        }
+        .padding(16)
+        .background(backgroundColor)
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.white.opacity(0.4), lineWidth: 1.5)
+        )
+        .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 2)
+    }
+    
+    private var actionButtons: some View {
+        VStack(spacing: 16) {
+            Button(action: {
+                withAnimation { currentStep = 3 }
+            }) {
+                HStack {
+                    Spacer()
+                    Text("Continue")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+                .padding(.vertical, 16)
+                .background(Color.white.opacity(0.25))
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                )
+            }
+            
+            Button(action: {
+                withAnimation { currentStep = 1 }
+            }) {
+                Text("Back")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
+            }
+            .padding(.top, 8)
+        }
+        .padding(.horizontal, 32)
+        .padding(.top, 32)
     }
     
     private var goalSelectionView: some View {
