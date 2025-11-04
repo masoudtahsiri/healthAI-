@@ -41,20 +41,41 @@ enum DateRangeType: String, CaseIterable {
 
 struct DateRangePicker: View {
     @Binding var selectedRange: DateRangeType
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var adaptiveSpacing: CGFloat {
+        horizontalSizeClass == .regular ? 12 : 8
+    }
+    
+    private var adaptiveFontSize: CGFloat {
+        horizontalSizeClass == .regular ? 16 : 14
+    }
+    
+    private var adaptivePadding: CGFloat {
+        horizontalSizeClass == .regular ? 12 : 10
+    }
+    
+    private var adaptiveCornerRadius: CGFloat {
+        horizontalSizeClass == .regular ? 12 : 10
+    }
+    
+    private var adaptiveHorizontalPadding: CGFloat {
+        horizontalSizeClass == .regular ? 24 : 16
+    }
     
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: adaptiveSpacing) {
             ForEach([DateRangeType.daily, .weekly, .monthly, .sixMonths, .yearly], id: \.self) { range in
                 Button(action: {
                     selectedRange = range
                 }) {
                     Text(range.shortLabel)
-                        .font(.system(size: DeviceType.isIPad ? 16 : 14, weight: .semibold))
+                        .font(.system(size: adaptiveFontSize, weight: .semibold))
                         .foregroundColor(selectedRange == range ? .white : .primary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, DeviceType.isIPad ? 12 : 10)
+                        .padding(.vertical, adaptivePadding)
                         .background(
-                            RoundedRectangle(cornerRadius: 10)
+                            RoundedRectangle(cornerRadius: adaptiveCornerRadius)
                                 .fill(selectedRange == range ? 
                                     AnyShapeStyle(range.color) : 
                                     AnyShapeStyle(.ultraThinMaterial)) // Use material for unselected
@@ -62,7 +83,7 @@ struct DateRangePicker: View {
                 }
             }
         }
-        .padding(.horizontal)
+        .frame(maxWidth: .infinity)
     }
 }
 

@@ -7,6 +7,7 @@ import UIKit
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @State private var healthInsight: HealthInsight?
     @State private var bodyCompositionPrediction: BodyCompositionPrediction?
     @State private var patternInsights: PatternInsights?
@@ -43,16 +44,26 @@ struct DashboardView: View {
         return "Health Insights"
     }
     
+    // Adaptive values based on native size classes
+    // Reduced iPad padding to allow full-width content
+    private var adaptivePadding: CGFloat {
+        horizontalSizeClass == .regular ? 24 : 16
+    }
+    
+    private var adaptiveSpacing: CGFloat {
+        horizontalSizeClass == .regular ? 32 : 20
+    }
+    
     var body: some View {
         NavigationView {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
                     Section {
-                        VStack(spacing: DeviceType.isIPad ? 32 : 20) {
+                        VStack(spacing: adaptiveSpacing) {
                             if isLoadingCache {
                                 VStack(spacing: 20) {
                                     ProgressView()
-                                        .scaleEffect(DeviceType.isIPad ? 1.5 : 1.0)
+                                        .scaleEffect(horizontalSizeClass == .regular ? 1.5 : 1.0)
                                     Text("Loading your health data...")
                                         .font(.responsiveBody())
                                         .foregroundColor(.secondary)
@@ -61,54 +72,53 @@ struct DashboardView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, DeviceType.isIPad ? 80 : 40)
+                                .padding(.vertical, horizontalSizeClass == .regular ? 80 : 40)
                             }
                             
                             if let error = errorMessage {
                                 ErrorView(message: error)
+                                    .frame(maxWidth: .infinity)
                             }
                             
                             if let insight = healthInsight {
-                                // Responsive Grid Layout
-                                LazyVGrid(
-                                    columns: DeviceType.isIPad ? [
-                                        GridItem(.flexible(), spacing: 24),
-                                        GridItem(.flexible(), spacing: 24)
-                                    ] : [
-                                        GridItem(.flexible())
-                                    ],
-                                    spacing: DeviceType.isIPad ? 24 : 20
-                                ) {
-                                    // Pattern & Efficiency Insights - Full width at top
+                                // Single column layout for both iPhone and iPad (iPad uses larger sizes)
+                                VStack(spacing: adaptiveSpacing) {
+                                    // Pattern & Efficiency Insights
                                     if let patterns = patternInsights {
                                         PatternInsightsCard(insights: patterns, onRetry: {
                                             refreshEfficiencyInsights()
                                         })
-                                            .gridCellColumns(DeviceType.isIPad ? 2 : 1)
+                                        .frame(maxWidth: .infinity)
                                     }
                                     
                                     WeeklySummaryCard(summary: insight.weeklySummary)
+                                        .frame(maxWidth: .infinity)
                                     
                                     BodyCompositionCard(
                                         composition: insight.bodyComposition,
                                         prediction: bodyCompositionPrediction,
                                         isCalculatingDesiredWeight: isLoadingAI
                                     )
-                                    .gridCellColumns(DeviceType.isIPad ? 2 : 1)
+                                    .frame(maxWidth: .infinity)
                                     
-                                    // Recommendations - Full width (always show card structure)
+                                    // Recommendations
                                     ComprehensiveRecommendationsCard(
                                         recommendations: comprehensiveRecommendations,
                                         isLoading: isLoadingRecommendations
                                     )
-                                    .gridCellColumns(DeviceType.isIPad ? 2 : 1)
+                                    .frame(maxWidth: .infinity)
                                 }
+                                .frame(maxWidth: .infinity)
                             }
                         }
-                        .padding(DeviceType.isIPad ? 32 : 16)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, adaptivePadding)
+                        .padding(.vertical, horizontalSizeClass == .regular ? 20 : 16)
                     } header: {
                         DateRangePicker(selectedRange: $selectedRange)
-                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, horizontalSizeClass == .regular ? 24 : 16)
+                            .padding(.vertical, horizontalSizeClass == .regular ? 12 : 8)
                             .onChange(of: selectedRange) { oldValue, newValue in
                                 // Cancel any in-flight data loading
                                 currentLoadingTask?.cancel()
@@ -126,6 +136,7 @@ struct DashboardView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
             .background(Color(.systemGroupedBackground))
             .navigationTitle(welcomeTitle)
             .navigationBarTitleDisplayMode(.large)
@@ -133,60 +144,63 @@ struct DashboardView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: SettingsView().environmentObject(appState)) {
                         Image(systemName: "gearshape")
-                            .responsiveIcon()
+                            .font(.system(size: horizontalSizeClass == .regular ? 24 : 20))
+                            .foregroundColor(.primary)
                     }
                 }
             }
-            .onAppear {
-                // Increase navigation bar height to accommodate larger button
-                let appearance = UINavigationBarAppearance()
-                appearance.configureWithDefaultBackground()
-                UINavigationBar.appearance().standardAppearance = appearance
-                UINavigationBar.appearance().scrollEdgeAppearance = appearance
-                
-                // Customize toolbar height using UIKit
-                DispatchQueue.main.async {
-                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                       let window = windowScene.windows.first {
-                        // Find navigation controller
-                        if let rootVC = window.rootViewController {
-                            var navController: UINavigationController?
-                            
-                            if let nav = rootVC as? UINavigationController {
-                                navController = nav
-                            } else if let presented = rootVC.presentedViewController as? UINavigationController {
-                                navController = presented
-                            }
-                            
-                            // Adjust navigation bar to allow more height for toolbar items
-                            navController?.navigationBar.prefersLargeTitles = true
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            // Increase navigation bar height to accommodate larger button
+            let appearance = UINavigationBarAppearance()
+            appearance.configureWithDefaultBackground()
+            UINavigationBar.appearance().standardAppearance = appearance
+            UINavigationBar.appearance().scrollEdgeAppearance = appearance
+            
+            // Customize toolbar height using UIKit
+            DispatchQueue.main.async {
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let window = windowScene.windows.first {
+                    // Find navigation controller
+                    if let rootVC = window.rootViewController {
+                        var navController: UINavigationController?
+                        
+                        if let nav = rootVC as? UINavigationController {
+                            navController = nav
+                        } else if let presented = rootVC.presentedViewController as? UINavigationController {
+                            navController = presented
                         }
+                        
+                        // Adjust navigation bar to allow more height for toolbar items
+                        navController?.navigationBar.prefersLargeTitles = true
                     }
                 }
-                
-                loadHealthDataWithCache()
             }
-            .onDisappear {
-                // Clean up all tasks when view disappears to prevent memory leaks
-                currentLoadingTask?.cancel()
-                rangeLoadDebounceTask?.cancel()
-                recommendationTask?.cancel()
-                currentLoadingTask = nil
-                rangeLoadDebounceTask = nil
-                recommendationTask = nil
-                recommendationRange = nil
+            
+            loadHealthDataWithCache()
+        }
+        .onDisappear {
+            // Clean up all tasks when view disappears to prevent memory leaks
+            currentLoadingTask?.cancel()
+            rangeLoadDebounceTask?.cancel()
+            recommendationTask?.cancel()
+            currentLoadingTask = nil
+            rangeLoadDebounceTask = nil
+            recommendationTask = nil
+            recommendationRange = nil
+        }
+        .onChange(of: scenePhase) { oldValue, newValue in
+            if newValue == .active {
+                Task { await autoRefreshIfNeeded(reason: "foreground") }
             }
-            .onChange(of: scenePhase) { oldValue, newValue in
-                if newValue == .active {
-                    Task { await autoRefreshIfNeeded(reason: "foreground") }
-                }
-            }
-            .onReceive(refreshTimer) { _ in
-                Task { await autoRefreshIfNeeded(reason: "30min-timer") }
-            }
-            .refreshable {
-                await refreshData()
-            }
+        }
+        .onReceive(refreshTimer) { _ in
+            Task { await autoRefreshIfNeeded(reason: "30min-timer") }
+        }
+        .refreshable {
+            await refreshData()
         }
     }
     private func autoRefreshIfNeeded(reason: String) async {
@@ -1153,7 +1167,6 @@ struct DashboardView: View {
     }
     
     // REMOVED: convertToHealthInsight(), calculateBodyComposition(), calculateProgressFromAI() - no longer needed since analyzeWithAppleIntelligence() was removed
-    
 }
 
 // MARK: - Progress Score Card
@@ -1162,10 +1175,19 @@ struct ProgressScoreCard: View {
     let progressScore: Int
     let predictions: (timelineToGoal: String, warnings: [String], dimensions: [(name: String, score: Int, insight: String)])?
     @State private var currentPage = 0
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var adaptiveSpacing: CGFloat {
+        horizontalSizeClass == .regular ? 24 : 20
+    }
+    
+    private var adaptivePadding: CGFloat {
+        horizontalSizeClass == .regular ? 40 : 24
+    }
     
     var body: some View {
         ModernCard(shadowColor: progressColor.opacity(0.2)) {
-            VStack(spacing: DeviceType.isIPad ? 24 : 20) {
+            VStack(spacing: adaptiveSpacing) {
                 HStack {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Overall Progress")
@@ -1184,7 +1206,7 @@ struct ProgressScoreCard: View {
                     // Carousel with dimension cards + predictions page
                     let allPages = buildPages(dimensions: preds.dimensions, timeline: preds.timelineToGoal, warnings: preds.warnings)
                     
-                    VStack(spacing: DeviceType.isIPad ? 16 : 12) {
+                    VStack(spacing: horizontalSizeClass == .regular ? 16 : 12) {
                         TabView(selection: $currentPage) {
                             // Dimension score pages
                             ForEach(Array(allPages.enumerated()), id: \.offset) { pageIndex, page in
@@ -1193,7 +1215,7 @@ struct ProgressScoreCard: View {
                             }
                         }
                         .tabViewStyle(.page(indexDisplayMode: .never))
-                        .frame(height: DeviceType.isIPad ? 280 : 220)
+                        .frame(height: horizontalSizeClass == .regular ? 280 : 220)
                         
                         // Page indicator
                         if allPages.count > 1 {
@@ -1210,34 +1232,34 @@ struct ProgressScoreCard: View {
                     }
                 } else {
                     // Fallback: Show overall score
-                    HStack(spacing: DeviceType.isIPad ? 40 : 30) {
+                    HStack(spacing: horizontalSizeClass == .regular ? 40 : 30) {
                         ZStack {
                             Circle()
-                                .stroke(Color.gray.opacity(0.1), lineWidth: DeviceType.isIPad ? 18 : 14)
+                                .stroke(Color.gray.opacity(0.1), lineWidth: horizontalSizeClass == .regular ? 18 : 14)
                             Circle()
                                 .trim(from: 0, to: CGFloat(progressScore) / 100)
-                                .stroke(progressColor, style: StrokeStyle(lineWidth: DeviceType.isIPad ? 18 : 14, lineCap: .round))
+                                .stroke(progressColor, style: StrokeStyle(lineWidth: horizontalSizeClass == .regular ? 18 : 14, lineCap: .round))
                                 .rotationEffect(.degrees(-90))
                             VStack(spacing: 4) {
                                 Text("\(progressScore)")
-                                    .font(.system(size: DeviceType.isIPad ? 64 : 48, weight: .bold, design: .rounded))
+                                    .font(.system(size: horizontalSizeClass == .regular ? 64 : 48, weight: .bold, design: .rounded))
                                     .foregroundColor(progressColor)
                                 Text("points")
                                     .font(.responsiveCaption())
                                     .foregroundColor(.secondary)
                             }
                         }
-                        .frame(width: DeviceType.isIPad ? 200 : 150, height: DeviceType.isIPad ? 200 : 150)
+                        .frame(width: horizontalSizeClass == .regular ? 200 : 150, height: horizontalSizeClass == .regular ? 200 : 150)
                         
-                        VStack(alignment: .leading, spacing: DeviceType.isIPad ? 16 : 12) {
+                        VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 16 : 12) {
                             StatLabel(icon: "target", value: goalMessage, color: progressColor)
                             StatLabel(icon: "star.fill", value: performanceLevel, color: performanceColor)
                         }
-                        .padding(.leading, DeviceType.isIPad ? 8 : 4)
+                        .padding(.leading, horizontalSizeClass == .regular ? 8 : 4)
                     }
                 }
             }
-            .padding(DeviceType.isIPad ? 32 : 24)
+            .padding(adaptivePadding)
         }
     }
     
@@ -1301,6 +1323,7 @@ struct DimensionScoreView: View {
     let name: String
     let score: Int
     let insight: String
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private var scoreColor: Color {
         switch score {
@@ -1321,26 +1344,26 @@ struct DimensionScoreView: View {
     }
     
     var body: some View {
-        VStack(spacing: DeviceType.isIPad ? 24 : 20) {
+        VStack(spacing: horizontalSizeClass == .regular ? 24 : 20) {
             // Score Circle
             ZStack {
                 Circle()
-                    .stroke(Color.gray.opacity(0.1), lineWidth: DeviceType.isIPad ? 16 : 12)
+                    .stroke(Color.gray.opacity(0.1), lineWidth: horizontalSizeClass == .regular ? 16 : 12)
                 Circle()
                     .trim(from: 0, to: CGFloat(score) / 100)
-                    .stroke(scoreColor, style: StrokeStyle(lineWidth: DeviceType.isIPad ? 16 : 12, lineCap: .round))
+                    .stroke(scoreColor, style: StrokeStyle(lineWidth: horizontalSizeClass == .regular ? 16 : 12, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 
                 VStack(spacing: 6) {
                     Image(systemName: icon)
-                        .font(.system(size: DeviceType.isIPad ? 32 : 24))
+                        .font(.system(size: horizontalSizeClass == .regular ? 32 : 24))
                         .foregroundColor(scoreColor)
                     Text("\(score)")
-                        .font(.system(size: DeviceType.isIPad ? 48 : 36, weight: .bold, design: .rounded))
+                        .font(.system(size: horizontalSizeClass == .regular ? 48 : 36, weight: .bold, design: .rounded))
                         .foregroundColor(scoreColor)
                 }
             }
-            .frame(width: DeviceType.isIPad ? 180 : 140, height: DeviceType.isIPad ? 180 : 140)
+            .frame(width: horizontalSizeClass == .regular ? 180 : 140, height: horizontalSizeClass == .regular ? 180 : 140)
             
             // Dimension name and insight
             VStack(spacing: 8) {
@@ -1356,7 +1379,7 @@ struct DimensionScoreView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, DeviceType.isIPad ? 16 : 12)
+        .padding(.vertical, horizontalSizeClass == .regular ? 16 : 12)
     }
 }
 
@@ -1365,9 +1388,10 @@ struct DimensionScoreView: View {
 struct PredictionsView: View {
     let timeline: String
     let warnings: [String]
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        VStack(alignment: .leading, spacing: DeviceType.isIPad ? 20 : 16) {
+        VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 20 : 16) {
             // Timeline Section
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
@@ -1380,7 +1404,7 @@ struct PredictionsView: View {
                 }
                 
                 Text(timeline)
-                    .font(.system(size: DeviceType.isIPad ? 32 : 28, weight: .bold, design: .rounded))
+                    .font(.system(size: horizontalSizeClass == .regular ? 32 : 28, weight: .bold, design: .rounded))
                     .foregroundColor(.blue)
                     .padding(.leading, 24)
             }
@@ -1442,10 +1466,27 @@ struct StatLabel: View {
 struct WeeklySummaryCard: View {
     let summary: WeeklySummary
     @State private var currentPage = 0
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var adaptiveSpacing: CGFloat {
+        horizontalSizeClass == .regular ? 24 : 20
+    }
+    
+    private var adaptivePadding: CGFloat {
+        horizontalSizeClass == .regular ? 36 : 20
+    }
+    
+    private var adaptiveCardHeight: CGFloat {
+        horizontalSizeClass == .regular ? 140.0 : 99.0
+    }
+    
+    private var adaptiveCardSpacing: CGFloat {
+        horizontalSizeClass == .regular ? 16.0 : 12.0
+    }
     
     var body: some View {
         ModernCard {
-            VStack(alignment: .leading, spacing: DeviceType.isIPad ? 24 : 20) {
+            VStack(alignment: .leading, spacing: adaptiveSpacing) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Activity Summary")
@@ -1464,8 +1505,8 @@ struct WeeklySummaryCard: View {
                 let statCards = buildStatCards(summary: summary)
                 let chunks = statCards.chunked(into: 2)
                 // Card height: frame (75/90) + padding top/bottom (24/32) = ~99/122
-                let singleCardHeight = DeviceType.isIPad ? 122.0 : 99.0
-                let spacing = DeviceType.isIPad ? 16.0 : 12.0
+                let singleCardHeight = adaptiveCardHeight
+                let spacing = adaptiveCardSpacing
                 let chunkHeight = (singleCardHeight * 2) + spacing
                 
                 VStack(spacing: 0) {
@@ -1481,13 +1522,13 @@ struct WeeklySummaryCard: View {
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .padding(.horizontal, DeviceType.isIPad ? 8 : 4)
+                            .padding(.horizontal, horizontalSizeClass == .regular ? 8 : 4)
                             .tag(index)
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
                     .frame(height: chunkHeight)
-                    .padding(.vertical, DeviceType.isIPad ? 8 : 4)
+                    .padding(.vertical, horizontalSizeClass == .regular ? 8 : 4)
                     
                     // Custom pagination dots below the cards
                     if chunks.count > 1 {
@@ -1502,7 +1543,7 @@ struct WeeklySummaryCard: View {
                     }
                 }
             }
-            .padding(DeviceType.isIPad ? 28 : 20)
+            .padding(adaptivePadding)
         }
     }
     
@@ -1616,6 +1657,7 @@ struct StatView: View {
     let label: String
     let icon: String
     let color: Color
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private var mainValue: String {
         if value.contains("(kcal)") {
@@ -1630,13 +1672,13 @@ struct StatView: View {
     }
     
     var body: some View {
-        HStack(spacing: DeviceType.isIPad ? 18 : 14) {
+        HStack(spacing: horizontalSizeClass == .regular ? 18 : 14) {
             Image(systemName: icon)
-                .font(.system(size: DeviceType.isIPad ? 36 : 28, weight: .semibold))
+                .font(.system(size: horizontalSizeClass == .regular ? 36 : 28, weight: .semibold))
                 .foregroundColor(.white)
-                .frame(width: DeviceType.isIPad ? 60 : 52, height: DeviceType.isIPad ? 60 : 52)
+                .frame(width: horizontalSizeClass == .regular ? 72 : 52, height: horizontalSizeClass == .regular ? 72 : 52)
                 .background(color)
-                .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 14 : 12))
+                .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 14 : 12))
             
             VStack(alignment: .leading, spacing: 4) {
                 // Check if value contains (kcal) and split it
@@ -1645,7 +1687,7 @@ struct StatView: View {
                         // Main value - number
                         Text(mainValue)
                             .font(.system(
-                                size: DeviceType.isIPad ? 26 : 20,
+                                size: horizontalSizeClass == .regular ? 32 : 20,
                                 weight: .bold,
                                 design: .rounded
                             ))
@@ -1656,7 +1698,7 @@ struct StatView: View {
                         // (kcal) - secondary value (smaller, in parentheses)
                         Text("(kcal)")
                             .font(.system(
-                                size: DeviceType.isIPad ? 18 : 15,
+                                size: horizontalSizeClass == .regular ? 22 : 15,
                                 weight: .medium,
                                 design: .rounded
                             ))
@@ -1669,7 +1711,7 @@ struct StatView: View {
                     // Regular value display
                     Text(value)
                         .font(.system(
-                            size: DeviceType.isIPad ? 26 : 20,
+                            size: horizontalSizeClass == .regular ? 32 : 20,
                             weight: .bold,
                             design: .rounded
                         ))
@@ -1681,7 +1723,7 @@ struct StatView: View {
                 
                 Text(label)
                     .font(.system(
-                        size: DeviceType.isIPad ? 14 : 13,
+                        size: horizontalSizeClass == .regular ? 18 : 13,
                         weight: .medium
                     ))
                     .foregroundColor(.secondary)
@@ -1691,8 +1733,8 @@ struct StatView: View {
             
             Spacer(minLength: 0)
         }
-        .frame(height: DeviceType.isIPad ? 90 : 75)
-        .padding(DeviceType.isIPad ? 16 : 12)
+        .frame(height: horizontalSizeClass == .regular ? 110 : 75)
+        .padding(horizontalSizeClass == .regular ? 16 : 12)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 14 : 12))
     }
@@ -1705,15 +1747,16 @@ struct StepsDistanceView: View {
     let distanceKM: Double
     let icon: String
     let color: Color
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        HStack(spacing: DeviceType.isIPad ? 18 : 14) {
+        HStack(spacing: horizontalSizeClass == .regular ? 18 : 14) {
             Image(systemName: icon)
-                .font(.system(size: DeviceType.isIPad ? 36 : 28, weight: .semibold))
+                .font(.system(size: horizontalSizeClass == .regular ? 36 : 28, weight: .semibold))
                 .foregroundColor(.white)
-                .frame(width: DeviceType.isIPad ? 60 : 52, height: DeviceType.isIPad ? 60 : 52)
+                .frame(width: horizontalSizeClass == .regular ? 72 : 52, height: horizontalSizeClass == .regular ? 72 : 52)
                 .background(color)
-                .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 14 : 12))
+                .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 14 : 12))
             
             VStack(alignment: .leading, spacing: 4) {
                 // Steps and Distance on same line
@@ -1721,7 +1764,7 @@ struct StepsDistanceView: View {
                     // Steps - main value
                     Text(formatSteps(steps))
                         .font(.system(
-                            size: DeviceType.isIPad ? 26 : 20,
+                            size: horizontalSizeClass == .regular ? 32 : 20,
                             weight: .bold,
                             design: .rounded
                         ))
@@ -1732,7 +1775,7 @@ struct StepsDistanceView: View {
                     // Distance - secondary value (smaller, in parentheses)
                     Text("(\(formatDistance(distanceKM)))")
                         .font(.system(
-                            size: DeviceType.isIPad ? 18 : 15,
+                            size: horizontalSizeClass == .regular ? 22 : 15,
                             weight: .medium,
                             design: .rounded
                         ))
@@ -1744,7 +1787,7 @@ struct StepsDistanceView: View {
                 
                 Text("Steps & Distance")
                     .font(.system(
-                        size: DeviceType.isIPad ? 14 : 13,
+                        size: horizontalSizeClass == .regular ? 18 : 13,
                         weight: .medium
                     ))
                     .foregroundColor(.secondary)
@@ -1754,10 +1797,10 @@ struct StepsDistanceView: View {
             
             Spacer(minLength: 0)
         }
-        .frame(height: DeviceType.isIPad ? 90 : 75)
-        .padding(DeviceType.isIPad ? 16 : 12)
+        .frame(height: horizontalSizeClass == .regular ? 110 : 75)
+        .padding(horizontalSizeClass == .regular ? 16 : 12)
         .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 14 : 12))
+        .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 14 : 12))
     }
     
     private func formatSteps(_ steps: Double) -> String {
@@ -1790,15 +1833,16 @@ struct WorkoutView: View {
     let workoutCount: Int
     let icon: String
     let color: Color
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        HStack(spacing: DeviceType.isIPad ? 18 : 14) {
+        HStack(spacing: horizontalSizeClass == .regular ? 18 : 14) {
             Image(systemName: icon)
-                .font(.system(size: DeviceType.isIPad ? 36 : 28, weight: .semibold))
+                .font(.system(size: horizontalSizeClass == .regular ? 36 : 28, weight: .semibold))
                 .foregroundColor(.white)
-                .frame(width: DeviceType.isIPad ? 60 : 52, height: DeviceType.isIPad ? 60 : 52)
+                .frame(width: horizontalSizeClass == .regular ? 72 : 52, height: horizontalSizeClass == .regular ? 72 : 52)
                 .background(color)
-                .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 14 : 12))
+                .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 14 : 12))
             
             VStack(alignment: .leading, spacing: 4) {
                 // Minutes and Workout Count on same line
@@ -1829,7 +1873,7 @@ struct WorkoutView: View {
                 
                 Text("Workouts")
                     .font(.system(
-                        size: DeviceType.isIPad ? 14 : 13,
+                        size: horizontalSizeClass == .regular ? 18 : 13,
                         weight: .medium
                     ))
                     .foregroundColor(.secondary)
@@ -1839,8 +1883,8 @@ struct WorkoutView: View {
             
             Spacer(minLength: 0)
         }
-        .frame(height: DeviceType.isIPad ? 90 : 75)
-        .padding(DeviceType.isIPad ? 16 : 12)
+        .frame(height: horizontalSizeClass == .regular ? 110 : 75)
+        .padding(horizontalSizeClass == .regular ? 16 : 12)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 14 : 12))
     }
@@ -1868,6 +1912,15 @@ struct BodyCompositionCard: View {
     let prediction: BodyCompositionPrediction?
     let isCalculatingDesiredWeight: Bool
     @State private var currentPage = 0
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var adaptiveSpacing: CGFloat {
+        horizontalSizeClass == .regular ? 24 : 20
+    }
+    
+    private var adaptivePadding: CGFloat {
+        horizontalSizeClass == .regular ? 36 : 20
+    }
     
     // Computed property to build all metrics
     private var allMetricsPages: [[(icon: String, title: String, value: String, color: Color)]] {
@@ -1937,7 +1990,7 @@ struct BodyCompositionCard: View {
     
     var body: some View {
         ModernCard {
-            VStack(alignment: .leading, spacing: DeviceType.isIPad ? 24 : 20) {
+            VStack(alignment: .leading, spacing: adaptiveSpacing) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Body & Fitness Analysis")
@@ -1956,15 +2009,15 @@ struct BodyCompositionCard: View {
                     let pages = allMetricsPages
                     
                     // Carousel with TabView
-                    VStack(spacing: DeviceType.isIPad ? 16 : 12) {
+                    VStack(spacing: horizontalSizeClass == .regular ? 16 : 12) {
                         TabView(selection: $currentPage) {
                             ForEach(Array(pages.enumerated()), id: \.offset) { pageIndex, pageMetrics in
                                 LazyVGrid(
                                     columns: [
-                                        GridItem(.flexible(), spacing: DeviceType.isIPad ? 16 : 12),
-                                        GridItem(.flexible(), spacing: DeviceType.isIPad ? 16 : 12)
+                                        GridItem(.flexible(), spacing: horizontalSizeClass == .regular ? 16 : 12),
+                                        GridItem(.flexible(), spacing: horizontalSizeClass == .regular ? 16 : 12)
                                     ],
-                                    spacing: DeviceType.isIPad ? 16 : 12
+                                    spacing: horizontalSizeClass == .regular ? 16 : 12
                                 ) {
                                     ForEach(Array(pageMetrics.enumerated()), id: \.offset) { _, metric in
                                         MetricItem(
@@ -1975,7 +2028,7 @@ struct BodyCompositionCard: View {
                                         )
                                     }
                                 }
-                                .padding(.horizontal, DeviceType.isIPad ? 8 : 4)
+                                .padding(.horizontal, horizontalSizeClass == .regular ? 8 : 4)
                                 .tag(pageIndex)
                             }
                         }
@@ -1998,7 +2051,7 @@ struct BodyCompositionCard: View {
                     .padding(.top, DeviceType.isIPad ? 8 : 4)
                 } else {
                     // Fallback to simple view if prediction not available
-                    VStack(spacing: DeviceType.isIPad ? 20 : 16) {
+                    VStack(spacing: horizontalSizeClass == .regular ? 20 : 16) {
                         if composition.estimatedFatLoss > 0 {
                             MetricRow(
                                 icon: "arrow.down.circle.fill",
@@ -2019,7 +2072,7 @@ struct BodyCompositionCard: View {
                     }
                 }
             }
-            .padding(DeviceType.isIPad ? 28 : 20)
+            .padding(adaptivePadding)
         }
     }
     
@@ -2052,6 +2105,8 @@ struct BodyCompositionCard: View {
         let numberOfRows = ceil(Double(maxMetricsOnPage) / 2.0)
         
         // Each row needs approximately 80-100 points of height (including spacing)
+        // Note: This function needs access to size class, but it's a static helper
+        // Using device type as fallback for now
         let rowHeight = DeviceType.isIPad ? 100.0 : 80.0
         let spacing = DeviceType.isIPad ? 16.0 : 12.0
         let totalSpacing = spacing * (numberOfRows - 1)
@@ -2067,6 +2122,7 @@ struct MetricItem: View {
     let value: String
     let color: Color
     @State private var showTooltip = false
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private var tooltipText: String {
         BodyCompositionTooltips.tooltip(for: title)
@@ -2096,16 +2152,16 @@ struct MetricItem: View {
                     .popover(isPresented: $showTooltip, arrowEdge: .top) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(title)
-                                .font(.system(size: DeviceType.isIPad ? 16 : 14))
+                                .font(.system(size: horizontalSizeClass == .regular ? 16 : 14))
                                 .fontWeight(.semibold)
                             
                             Text(tooltipText)
-                                .font(.system(size: DeviceType.isIPad ? 13 : 12))
+                                .font(.system(size: horizontalSizeClass == .regular ? 13 : 12))
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        .padding(DeviceType.isIPad ? 14 : 12)
-                        .frame(width: DeviceType.isIPad ? 300 : 260)
+                        .padding(horizontalSizeClass == .regular ? 14 : 12)
+                        .frame(width: horizontalSizeClass == .regular ? 300 : 260)
                         .presentationCompactAdaptation(.popover)
                     }
                 }
@@ -2117,7 +2173,7 @@ struct MetricItem: View {
                 .foregroundColor(.primary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(DeviceType.isIPad ? 12 : 10)
+        .padding(horizontalSizeClass == .regular ? 12 : 10)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
@@ -2128,13 +2184,14 @@ struct MetricRow: View {
     let title: String
     let value: String
     let color: Color
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        HStack(spacing: DeviceType.isIPad ? 16 : 12) {
+        HStack(spacing: horizontalSizeClass == .regular ? 16 : 12) {
             Image(systemName: icon)
-                .font(.system(size: DeviceType.isIPad ? 24 : 20))
+                .font(.system(size: horizontalSizeClass == .regular ? 24 : 20))
                 .foregroundColor(color)
-                .frame(width: DeviceType.isIPad ? 48 : 40, height: DeviceType.isIPad ? 48 : 40)
+                .frame(width: horizontalSizeClass == .regular ? 48 : 40, height: horizontalSizeClass == .regular ? 48 : 40)
                 .background(color.opacity(0.15))
                 .clipShape(Circle())
             
@@ -2149,9 +2206,9 @@ struct MetricRow: View {
             
             Spacer()
         }
-        .padding(DeviceType.isIPad ? 12 : 10)
+        .padding(horizontalSizeClass == .regular ? 12 : 10)
         .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 16 : 12))
+        .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 16 : 12))
     }
 }
 
@@ -2161,10 +2218,19 @@ struct ComprehensiveRecommendationsCard: View {
     let recommendations: ComprehensiveRecommendations?
     let isLoading: Bool
     @State private var currentPage = 0
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var adaptiveSpacing: CGFloat {
+        horizontalSizeClass == .regular ? 32 : 28
+    }
+    
+    private var adaptivePadding: CGFloat {
+        horizontalSizeClass == .regular ? 36 : 20
+    }
     
     var body: some View {
         ModernCard(shadowColor: Color.purple.opacity(0.2)) {
-            VStack(alignment: .leading, spacing: DeviceType.isIPad ? 32 : 28) {
+            VStack(alignment: .leading, spacing: adaptiveSpacing) {
                 HStack {
                     HStack(spacing: 12) {
                         Image(systemName: "brain.head.profile")
@@ -2192,9 +2258,9 @@ struct ComprehensiveRecommendationsCard: View {
                 
                 if isLoading {
                     // Loading state inside the card
-                    VStack(spacing: DeviceType.isIPad ? 20 : 16) {
+                    VStack(spacing: horizontalSizeClass == .regular ? 20 : 16) {
                         ProgressView()
-                            .scaleEffect(DeviceType.isIPad ? 1.3 : 1.1)
+                            .scaleEffect(horizontalSizeClass == .regular ? 1.3 : 1.1)
                             .tint(.purple)
                         Text("Analyzing your metrics please wait")
                             .font(.responsiveBody())
@@ -2202,7 +2268,7 @@ struct ComprehensiveRecommendationsCard: View {
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, DeviceType.isIPad ? 60 : 40)
+                    .padding(.vertical, horizontalSizeClass == .regular ? 60 : 40)
                 } else if let recommendations = recommendations {
                     let sortedRecommendations = recommendations.topRecommendations.sorted(by: { $0.priority < $1.priority })
                     
@@ -2214,7 +2280,7 @@ struct ComprehensiveRecommendationsCard: View {
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .automatic))
-                    .frame(height: DeviceType.isIPad ? 500 : 450)
+                    .frame(height: horizontalSizeClass == .regular ? 500 : 450)
                     .id("\(recommendations.analyzedPeriod)-\(recommendations.topRecommendations.count)")
                     .onChange(of: recommendations.analyzedPeriod) { oldValue, newValue in
                         currentPage = 0
@@ -2224,13 +2290,14 @@ struct ComprehensiveRecommendationsCard: View {
                     }
                 }
             }
-            .padding(DeviceType.isIPad ? 28 : 20)
+            .padding(adaptivePadding)
         }
     }
 }
 
 struct CoachActionCard: View {
     let action: CoachAction
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private var categoryColor: Color {
         switch action.category {
@@ -2384,11 +2451,12 @@ struct CoachActionCard: View {
 
 struct ErrorView: View {
     let message: String
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: DeviceType.isIPad ? 48 : 40))
+                .font(.system(size: horizontalSizeClass == .regular ? 48 : 40))
                 .foregroundColor(.orange)
             
             Text(message)
@@ -2397,9 +2465,9 @@ struct ErrorView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
         }
-        .padding(DeviceType.isIPad ? 32 : 20)
+            .padding(horizontalSizeClass == .regular ? 40 : 20)
         .background(
-            RoundedRectangle(cornerRadius: DeviceType.isIPad ? 20 : 16)
+            RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 20 : 16)
                 .fill(Color.orange.opacity(0.1))
         )
     }
@@ -2411,12 +2479,21 @@ struct PatternInsightsCard: View {
     let insights: PatternInsights
     let onRetry: () -> Void
     @State private var currentPage = 0
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private let tabLabels = ["Comparisons", "Efficiency"]
     
+    private var adaptiveSpacing: CGFloat {
+        horizontalSizeClass == .regular ? 24 : 20
+    }
+    
+    private var adaptivePadding: CGFloat {
+        horizontalSizeClass == .regular ? 36 : 20
+    }
+    
     var body: some View {
         ModernCard {
-            VStack(alignment: .leading, spacing: DeviceType.isIPad ? 12 : 10) {
+            VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 12 : 10) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Comparisons & Efficiency")
@@ -2467,7 +2544,7 @@ struct PatternInsightsCard: View {
                     .padding(.top, DeviceType.isIPad ? 8 : 4)
                 }
             }
-            .padding(DeviceType.isIPad ? 28 : 20)
+            .padding(adaptivePadding)
         }
     }
 }
@@ -2592,11 +2669,12 @@ private func formatKcal(_ value: Double) -> String {
 struct EfficiencyView: View {
     let efficiency: EfficiencyMetrics
     let onRetry: () -> Void
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        VStack(alignment: .leading, spacing: DeviceType.isIPad ? 20 : 16) {
+        VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 20 : 16) {
             // Metrics
-            VStack(spacing: DeviceType.isIPad ? 12 : 10) {
+            VStack(spacing: horizontalSizeClass == .regular ? 12 : 10) {
                 MetricRowView(
                     icon: "flame.fill",
                     title: "Workout Efficiency",
@@ -2644,10 +2722,10 @@ struct EfficiencyView: View {
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(DeviceType.isIPad ? 16 : 12)
+                .padding(horizontalSizeClass == .regular ? 16 : 12)
                 .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 12 : 10))
-                .padding(.top, DeviceType.isIPad ? 8 : 4)
+                .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 12 : 10))
+                .padding(.top, horizontalSizeClass == .regular ? 8 : 4)
             } else if let insights = efficiency.categorizedInsights {
                 // Show carousel with refresh button overlay if AI response is invalid
                 // AI might not respond due to:
@@ -2660,7 +2738,7 @@ struct EfficiencyView: View {
                     insights: insights,
                     onRefresh: !insights.isValid ? onRetry : nil
                 )
-                .padding(.top, DeviceType.isIPad ? 8 : 4)
+                .padding(.top, horizontalSizeClass == .regular ? 8 : 4)
             }
         }
     }
@@ -3169,14 +3247,15 @@ struct HeatmapGridView: View {
 
 struct PlateauView: View {
     let status: PlateauStatus
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        VStack(alignment: .leading, spacing: DeviceType.isIPad ? 16 : 12) {
+        VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 16 : 12) {
             if status.isPlateau {
-                VStack(alignment: .leading, spacing: DeviceType.isIPad ? 12 : 10) {
+                VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 12 : 10) {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: DeviceType.isIPad ? 24 : 20))
+                            .font(.system(size: horizontalSizeClass == .regular ? 24 : 20))
                             .foregroundColor(severityColor(status.severity))
                         Text("Plateau Detected")
                             .font(.responsiveBody())
@@ -3187,18 +3266,18 @@ struct PlateauView: View {
                     Text("No significant progress for \(status.daysInPlateau) days")
                         .font(.responsiveCaption())
                         .foregroundColor(.secondary)
-                        .padding(.leading, DeviceType.isIPad ? 32 : 28)
+                        .padding(.leading, horizontalSizeClass == .regular ? 32 : 28)
                     
                     if !status.suggestedActions.isEmpty {
                         Divider()
-                            .padding(.vertical, DeviceType.isIPad ? 8 : 6)
+                            .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
                         
                         Text("Suggestions:")
                             .font(.responsiveBody())
                             .fontWeight(.medium)
-                            .padding(.bottom, DeviceType.isIPad ? 6 : 4)
+                            .padding(.bottom, horizontalSizeClass == .regular ? 6 : 4)
                         
-                        VStack(alignment: .leading, spacing: DeviceType.isIPad ? 8 : 6) {
+                        VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 8 : 6) {
                             ForEach(Array(status.suggestedActions.enumerated()), id: \.offset) { _, action in
                                 HStack(alignment: .top, spacing: 8) {
                                     Image(systemName: "circle.fill")
@@ -3214,14 +3293,14 @@ struct PlateauView: View {
                         }
                     }
                 }
-                .padding(DeviceType.isIPad ? 16 : 12)
+                .padding(horizontalSizeClass == .regular ? 16 : 12)
                 .background(severityColor(status.severity).opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 14 : 12))
+                .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 14 : 12))
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: DeviceType.isIPad ? 24 : 20))
+                            .font(.system(size: horizontalSizeClass == .regular ? 24 : 20))
                             .foregroundColor(.green)
                         Text("No Plateau Detected")
                             .font(.responsiveBody())
@@ -3233,9 +3312,9 @@ struct PlateauView: View {
                         .font(.responsiveCaption())
                         .foregroundColor(.secondary)
                 }
-                .padding(DeviceType.isIPad ? 16 : 12)
+                .padding(horizontalSizeClass == .regular ? 16 : 12)
                 .background(Color.green.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 14 : 12))
+                .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 14 : 12))
             }
         }
     }
@@ -3260,6 +3339,7 @@ struct MetricRowView: View {
     let tooltip: String?
     
     @State private var showTooltip = false
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     init(icon: String, title: String, value: String, iconColor: Color, valueColor: Color, tooltip: String? = nil) {
         self.icon = icon
@@ -3271,11 +3351,11 @@ struct MetricRowView: View {
     }
     
     var body: some View {
-        HStack(spacing: DeviceType.isIPad ? 12 : 10) {
+        HStack(spacing: horizontalSizeClass == .regular ? 12 : 10) {
             Image(systemName: icon)
-                .font(.system(size: DeviceType.isIPad ? 20 : 18))
+                .font(.system(size: horizontalSizeClass == .regular ? 20 : 18))
                 .foregroundColor(iconColor)
-                .frame(width: DeviceType.isIPad ? 36 : 32)
+                .frame(width: horizontalSizeClass == .regular ? 36 : 32)
             
             HStack(spacing: 4) {
                 Text(title)
@@ -3286,23 +3366,23 @@ struct MetricRowView: View {
                 if let tooltip = tooltip {
                     Button(action: { showTooltip = true }) {
                         Image(systemName: "info.circle")
-                            .font(.system(size: DeviceType.isIPad ? 14 : 12))
+                            .font(.system(size: horizontalSizeClass == .regular ? 14 : 12))
                             .foregroundColor(.blue)
                     }
                     .buttonStyle(PlainButtonStyle())
                     .popover(isPresented: $showTooltip, arrowEdge: .top) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(title)
-                                .font(.system(size: DeviceType.isIPad ? 16 : 14))
+                                .font(.system(size: horizontalSizeClass == .regular ? 16 : 14))
                                 .fontWeight(.semibold)
                             
                             Text(tooltip)
-                                .font(.system(size: DeviceType.isIPad ? 13 : 12))
+                                .font(.system(size: horizontalSizeClass == .regular ? 13 : 12))
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        .padding(DeviceType.isIPad ? 14 : 12)
-                        .frame(width: DeviceType.isIPad ? 300 : 260)
+                        .padding(horizontalSizeClass == .regular ? 14 : 12)
+                        .frame(width: horizontalSizeClass == .regular ? 300 : 260)
                         .presentationCompactAdaptation(.popover)
                     }
                 }
@@ -3311,15 +3391,15 @@ struct MetricRowView: View {
             Spacer()
             
             Text(value)
-                .font(.system(size: DeviceType.isIPad ? 14 : 12))
+                .font(.system(size: horizontalSizeClass == .regular ? 14 : 12))
                 .fontWeight(.semibold)
                 .foregroundColor(valueColor)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
-        .padding(DeviceType.isIPad ? 10 : 8)
+        .padding(horizontalSizeClass == .regular ? 10 : 8)
         .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: DeviceType.isIPad ? 10 : 8))
+        .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 10 : 8))
     }
 }
 
