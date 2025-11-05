@@ -94,18 +94,29 @@ struct DashboardView: View {
                                     WeeklySummaryCard(summary: insight.weeklySummary)
                                         .frame(maxWidth: .infinity)
                                     
-                                    BodyCompositionCard(
-                                        composition: insight.bodyComposition,
-                                        prediction: bodyCompositionPrediction,
-                                        isCalculatingDesiredWeight: isLoadingAI
-                                    )
+                                    // Body & Fitness Analysis (Premium)
+                                    SubscriptionGatedView(
+                                        featureName: "Body & Fitness Analysis",
+                                        featureIcon: "scalemass.fill"
+                                    ) {
+                                        BodyCompositionCard(
+                                            composition: insight.bodyComposition,
+                                            prediction: bodyCompositionPrediction,
+                                            isCalculatingDesiredWeight: isLoadingAI
+                                        )
+                                    }
                                     .frame(maxWidth: .infinity)
                                     
-                                    // Recommendations
-                                    ComprehensiveRecommendationsCard(
-                                        recommendations: comprehensiveRecommendations,
-                                        isLoading: isLoadingRecommendations
-                                    )
+                                    // Coach Recommendations (Premium)
+                                    SubscriptionGatedView(
+                                        featureName: "Coach Recommendations",
+                                        featureIcon: "brain.head.profile"
+                                    ) {
+                                        ComprehensiveRecommendationsCard(
+                                            recommendations: comprehensiveRecommendations,
+                                            isLoading: isLoadingRecommendations
+                                        )
+                                    }
                                     .frame(maxWidth: .infinity)
                                 }
                                 .frame(maxWidth: .infinity)
@@ -2479,6 +2490,8 @@ struct PatternInsightsCard: View {
     let insights: PatternInsights
     let onRetry: () -> Void
     @State private var currentPage = 0
+    @State private var showPaywall = false
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private let tabLabels = ["Comparisons", "Efficiency"]
@@ -2514,14 +2527,49 @@ struct PatternInsightsCard: View {
                         ComparisonsView(comparisons: insights.comparisons)
                             .tag(0)
                         
-                        EfficiencyView(
-                            efficiency: insights.efficiencyScore,
-                            onRetry: onRetry
-                        )
+                        // Efficiency tab - check subscription
+                        Group {
+                            if subscriptionManager.isSubscribed {
+                                EfficiencyView(
+                                    efficiency: insights.efficiencyScore,
+                                    onRetry: onRetry
+                                )
+                            } else {
+                                // Show locked view for Efficiency when not subscribed
+                                SubscriptionLockedView(
+                                    featureName: "Efficiency Analysis",
+                                    featureIcon: "chart.line.uptrend.xyaxis",
+                                    onUpgrade: {
+                                        showPaywall = true
+                                    }
+                                )
+                            }
+                        }
                         .tag(1)
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
                     .frame(height: DeviceType.isIPad ? 520 : 440)
+                    .onChange(of: currentPage) { oldValue, newValue in
+                        // Check subscription when user tries to view Efficiency tab
+                        if newValue == 1 && !subscriptionManager.isSubscribed {
+                            Task {
+                                await subscriptionManager.checkSubscriptionStatus()
+                            }
+                        }
+                    }
+                    .sheet(isPresented: $showPaywall) {
+                        PaywallView()
+                            .onDisappear {
+                                // Refresh subscription status when paywall is dismissed
+                                Task {
+                                    await subscriptionManager.checkSubscriptionStatus()
+                                }
+                            }
+                    }
+                    .task {
+                        // Check subscription status when view appears
+                        await subscriptionManager.checkSubscriptionStatus()
+                    }
                     
                     // Tab labels and page indicators at bottom center
                     VStack(spacing: DeviceType.isIPad ? 12 : 8) {

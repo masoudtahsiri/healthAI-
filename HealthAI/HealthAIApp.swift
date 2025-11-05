@@ -21,6 +21,7 @@ class AppState: ObservableObject {
     let healthKitManager = HealthKitManager()
     let aiCore = AICore()
     let healthDataCache = HealthDataCache()
+    let subscriptionManager = SubscriptionManager.shared
     
     @available(iOS 26.0, *)
     lazy var appleIntelligence: AppleIntelligence? = {

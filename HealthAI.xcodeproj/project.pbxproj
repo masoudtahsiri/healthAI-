@@ -24,6 +24,9 @@
 		A1001051 /* PatternAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001052 /* PatternAnalyzer.swift */; };
 		A1001053 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001054 /* SettingsView.swift */; };
 		A1001055 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001056 /* SplashView.swift */; };
+		AD2ADBEE2EB16A7300FEBCFC /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2ADBED2EB1664500FEBCFC /* SubscriptionManager.swift */; };
+		AD3ADBEE2EB16A7300FEBCFC /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD3ADBED2EB1664500FEBCFC /* PaywallView.swift */; };
+		AD4ADBEE2EB16A7300FEBCFC /* SubscriptionGatedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD4ADBED2EB1664500FEBCFC /* SubscriptionGatedView.swift */; };
 		AD1ADBEE2EB16A7300FEBCFC /* FoundationModels.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AD1ADBED2EB1664500FEBCFC /* FoundationModels.framework */; };
 		ADAA4F642EB9516D003C0930 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = ADAA4F632EB9516D003C0930 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
@@ -48,6 +51,9 @@
 		A1001052 /* PatternAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternAnalyzer.swift; sourceTree = "<group>"; };
 		A1001054 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1001056 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		AD2ADBED2EB1664500FEBCFC /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
+		AD3ADBED2EB1664500FEBCFC /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		AD4ADBED2EB1664500FEBCFC /* SubscriptionGatedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionGatedView.swift; sourceTree = "<group>"; };
 		AD1ADBED2EB1664500FEBCFC /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/FoundationModels.framework; sourceTree = DEVELOPER_DIR; };
 		ADAA4F632EB9516D003C0930 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -97,6 +103,8 @@
 				A1001054 /* SettingsView.swift */,
 				A1001042 /* DateRangePicker.swift */,
 				A1001044 /* ResponsiveLayout.swift */,
+				AD3ADBED2EB1664500FEBCFC /* PaywallView.swift */,
+				AD4ADBED2EB1664500FEBCFC /* SubscriptionGatedView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -119,6 +127,7 @@
 				A1001046 /* HealthDataCache.swift */,
 				A1001050 /* BodyCompositionCalculator.swift */,
 				A1001052 /* PatternAnalyzer.swift */,
+				AD2ADBED2EB1664500FEBCFC /* SubscriptionManager.swift */,
 			);
 			path = Managers;
 			sourceTree = "<group>";
@@ -227,6 +236,9 @@
 				A1001051 /* PatternAnalyzer.swift in Sources */,
 				A1001053 /* SettingsView.swift in Sources */,
 				A1001055 /* SplashView.swift in Sources */,
+				AD2ADBEE2EB16A7300FEBCFC /* SubscriptionManager.swift in Sources */,
+				AD3ADBEE2EB16A7300FEBCFC /* PaywallView.swift in Sources */,
+				AD4ADBEE2EB16A7300FEBCFC /* SubscriptionGatedView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
