@@ -84,7 +84,7 @@ struct PaywallView: View {
                         VStack(spacing: 16) {
                             // Price Display
                             VStack(spacing: 8) {
-                                if let subscription = product.subscription {
+                                if product.subscription != nil {
                                     Text("3-Day Free Trial")
                                         .font(.responsiveHeadline())
                                         .foregroundColor(.green)

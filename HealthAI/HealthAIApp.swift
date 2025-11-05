@@ -13,6 +13,7 @@ struct HealthAIApp: App {
 }
 
 // MARK: - App State
+@MainActor
 class AppState: ObservableObject {
     @Published var userProfile: UserProfile?
     @Published var hasCompletedOnboarding = false
