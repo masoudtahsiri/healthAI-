@@ -4,7 +4,8 @@ import FoundationModels
 import OSLog
 
 /// Apple Intelligence integration for on-device health analysis
-/// Uses Apple's Foundation Models Framework for advanced AI analysis
+/// Uses Apple's Foundation Models Framework for advanced AI analysis on supported devices
+/// Falls back to Groq API for devices without Apple Intelligence support
 @available(iOS 26.0, *)
 class AppleIntelligence: ObservableObject {
     
@@ -12,16 +13,138 @@ class AppleIntelligence: ObservableObject {
     private let logger = Logger(subsystem: "com.healthai.app", category: "AppleIntelligence")
     
     private let session: LanguageModelSession?
+    private let useAppleIntelligence: Bool
     
     // MARK: - Recommendation History Storage
     private let historyStorage: RecommendationHistoryStorage
     
+    // MARK: - Groq API Configuration
+    private let groqAPIKey: String
+    private let groqModel = "llama-3.1-8b-instant"
+    private let groqBaseURL = "https://api.groq.com/openai/v1/chat/completions"
+    
     init(historyStorage: RecommendationHistoryStorage = FileRecommendationHistoryStorage()) {
-        // Initialize Apple Intelligence features
-        logger.info("Initializing Apple Intelligence with Foundation Models")
-        self.session = LanguageModelSession(model: .default)
         self.historyStorage = historyStorage
-        logger.info("LanguageModelSession initialized successfully")
+        
+        // Detect if Apple Intelligence is available (iOS 26.0+ AND A17 Pro or newer)
+        let hasAppleIntelligence = Self.isAppleIntelligenceAvailable()
+        self.useAppleIntelligence = hasAppleIntelligence
+        
+        if hasAppleIntelligence {
+            // Initialize Apple Intelligence features
+            logger.info("🔵 [API Selection] Apple Intelligence detected and available")
+            logger.info("✅ Initializing Apple Intelligence with Foundation Models")
+            self.session = LanguageModelSession(model: .default)
+            logger.info("LanguageModelSession initialized successfully")
+        } else {
+            // Use Groq API fallback
+            logger.info("🟢 [API Selection] Apple Intelligence not available, using Groq API fallback")
+            logger.info("   Reason: Device doesn't meet requirements (iOS 26.0+ AND A17 Pro/M3+)")
+            self.session = nil
+        }
+        
+        // Load Groq API key from Keychain (or use default for now)
+        self.groqAPIKey = Self.loadGroqAPIKey()
+        
+        if !hasAppleIntelligence && groqAPIKey.isEmpty {
+            logger.warning("⚠️ Groq API key not found - AI features may not work")
+        }
+    }
+    
+    // MARK: - Hardware Detection
+    
+    /// Check if device supports Apple Intelligence (iOS 26.0+ AND A17 Pro or newer)
+    private static func isAppleIntelligenceAvailable() -> Bool {
+        // Check iOS version
+        guard #available(iOS 26.0, *) else {
+            return false
+        }
+        
+        // Check chip model (A17 Pro or newer, or M3/M4+)
+        let chipModel = getChipModel()
+        let isA17ProOrNewer = isA17ProOrAbove(chipModel: chipModel)
+        
+        guard isA17ProOrNewer else {
+            return false
+        }
+        
+        // Try to initialize FoundationModels to verify it's actually available
+        // Note: This check happens at runtime, so if FoundationModels isn't available,
+        // the initialization will fail gracefully
+        let testSession = LanguageModelSession(model: .default)
+        return testSession != nil
+    }
+    
+    /// Get device chip model identifier
+    private static func getChipModel() -> String {
+        var size = 0
+        sysctlbyname("hw.machine", nil, &size, nil, 0)
+        var machine = [CChar](repeating: 0, count: size)
+        sysctlbyname("hw.machine", &machine, &size, nil, 0)
+        return String(cString: machine)
+    }
+    
+    /// Check if chip is A17 Pro or newer (iPhone 15 Pro+) or M3/M4+ (iPad/Mac)
+    private static func isA17ProOrAbove(chipModel: String) -> Bool {
+        // iPhone 15 Pro models (A17 Pro): iPhone16,1, iPhone16,2
+        // iPhone 16 models (A18): iPhone17,1, iPhone17,2, etc.
+        // iPad Pro M3: iPad14,3+
+        // iPad Pro M4: iPad15,1+
+        // Mac M3/M4: Mac models with M3/M4
+        
+        if chipModel.contains("iPhone16") || chipModel.contains("iPhone17") || chipModel.contains("iPhone18") {
+            // iPhone 15 Pro or newer
+            return true
+        }
+        
+        if chipModel.contains("iPad14") || chipModel.contains("iPad15") || chipModel.contains("iPad16") {
+            // iPad Pro M3 or newer
+            return true
+        }
+        
+        // For Mac, check for M3/M4 in model identifier
+        if chipModel.contains("Mac") {
+            // Mac with M3/M4 chip (would need additional detection)
+            // For now, assume Mac models support it if iOS 26.0+
+            return true
+        }
+        
+        return false
+    }
+    
+    // MARK: - Groq API Key Management
+    
+    /// Load Groq API key from Keychain
+    /// Returns empty string if key is not found in Keychain
+    /// API keys should NEVER be hardcoded in source code
+    private static func loadGroqAPIKey() -> String {
+        // Load from Keychain only - no hardcoded fallback
+        if let keychainKey = Self.getKeychainValue(for: "groq_api_key"), !keychainKey.isEmpty {
+            return keychainKey
+        }
+        
+        // Return empty string if not found - app will handle gracefully
+        return ""
+    }
+    
+    /// Get value from Keychain
+    private static func getKeychainValue(for key: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: true
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        if status == errSecSuccess,
+           let data = result as? Data,
+           let value = String(data: data, encoding: .utf8) {
+            return value
+        }
+        
+        return nil
     }
     
     // MARK: - AI Response Cache
@@ -58,7 +181,28 @@ class AppleIntelligence: ObservableObject {
     private var cachedResponses: [String: CachedAIResponse] = [:]
     
     // Track when HealthKit data was last fetched (for cache invalidation)
-    private var lastHealthKitFetchDate: Date?
+    // Persisted to UserDefaults to survive app termination
+    private var _lastHealthKitFetchDate: Date?
+    private var lastHealthKitFetchDate: Date? {
+        get {
+            // Load from persistent storage if not in memory
+            if _lastHealthKitFetchDate == nil {
+                if let timestamp = UserDefaults.standard.object(forKey: "AppleIntelligence.lastHealthKitFetchDate") as? Date {
+                    _lastHealthKitFetchDate = timestamp
+                }
+            }
+            return _lastHealthKitFetchDate
+        }
+        set {
+            _lastHealthKitFetchDate = newValue
+            // Persist to UserDefaults
+            if let date = newValue {
+                UserDefaults.standard.set(date, forKey: "AppleIntelligence.lastHealthKitFetchDate")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "AppleIntelligence.lastHealthKitFetchDate")
+            }
+        }
+    }
     
     /// Get cached AI response for a date range (can be partial)
     func getCachedResponse(for rangeType: String) -> CachedAIResponse? {
@@ -169,10 +313,64 @@ class AppleIntelligence: ObservableObject {
     
     /// Mark HealthKit data as refreshed (invalidates all cache entries older than this date)
     func markHealthKitRefreshed(fetchedAt: Date) {
+        // Update persistent timestamp
         self.lastHealthKitFetchDate = fetchedAt
         // Remove any cache entries that were created before this refresh
         self.cachedResponses = self.cachedResponses.filter { $0.value.cachedAt >= fetchedAt }
         logger.info("🔄 [AI Cache] HealthKit refreshed at \(fetchedAt), invalidated stale cache entries")
+    }
+    
+    // MARK: - Groq API Helper Methods
+    
+    /// Call Groq API with a prompt and return the response
+    private func callGroqAPI(prompt: String, temperature: Double = 0.7, maxTokens: Int = 2000) async throws -> String {
+        guard !groqAPIKey.isEmpty else {
+            throw NSError(domain: "GroqAPI", code: 1, userInfo: [NSLocalizedDescriptionKey: "Groq API key not configured"])
+        }
+        
+        logger.info("🌐 [Groq API] Calling Groq API (prompt: \(prompt.count) chars)")
+        
+        var request = URLRequest(url: URL(string: groqBaseURL)!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(groqAPIKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let requestBody: [String: Any] = [
+            "model": groqModel,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": prompt
+                ]
+            ],
+            "temperature": temperature,
+            "max_tokens": maxTokens
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "GroqAPI", code: 2, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            logger.error("❌ [Groq API] HTTP \(httpResponse.statusCode): \(errorMessage)")
+            throw NSError(domain: "GroqAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "API error: \(errorMessage)"])
+        }
+        
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any],
+              let content = message["content"] as? String else {
+            throw NSError(domain: "GroqAPI", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to parse response"])
+        }
+        
+        logger.info("✅ [Groq API] Response received (\(content.count) chars)")
+        return content
     }
     
     /// Generate AI-powered efficiency insights based on all efficiency metrics
@@ -185,22 +383,53 @@ class AppleIntelligence: ObservableObject {
         hasWorkouts: Bool,
         rangeType: String
     ) async -> EfficiencyInsights {
-        guard session != nil else {
-            // Fallback to rule-based if AI not available
-            // Return invalid insights - will show refresh button in UI
-            return EfficiencyInsights(
-                overallAssessment: "",
-                areasForImprovement: [],
-                whatIsWorkingWell: "",
-                isValid: false
+        // Route to appropriate API based on availability
+        if useAppleIntelligence, let session = session {
+            logger.info("🔵 [Routing] Using Apple Intelligence for efficiency insights")
+            return await generateEfficiencyInsightWithAppleIntelligence(
+                profile: profile,
+                workoutEfficiency: workoutEfficiency,
+                heartHealthEfficiency: heartHealthEfficiency,
+                fitnessGains: fitnessGains,
+                sleepEfficiency: sleepEfficiency,
+                hasWorkouts: hasWorkouts,
+                rangeType: rangeType,
+                session: session
+            )
+        } else {
+            logger.info("🟢 [Routing] Using Groq API for efficiency insights")
+            return await generateEfficiencyInsightWithGroq(
+                profile: profile,
+                workoutEfficiency: workoutEfficiency,
+                heartHealthEfficiency: heartHealthEfficiency,
+                fitnessGains: fitnessGains,
+                sleepEfficiency: sleepEfficiency,
+                hasWorkouts: hasWorkouts,
+                rangeType: rangeType
             )
         }
+    }
+    
+    /// Generate efficiency insights using Apple Intelligence
+    private func generateEfficiencyInsightWithAppleIntelligence(
+        profile: UserProfile,
+        workoutEfficiency: Double,
+        heartHealthEfficiency: Double?,
+        fitnessGains: Double?,
+        sleepEfficiency: Double?,
+        hasWorkouts: Bool,
+        rangeType: String,
+        session: LanguageModelSession
+    ) async -> EfficiencyInsights {
         
         logger.info("Generating AI efficiency insight for \(rangeType)")
         
         // Create a fresh session for efficiency insights to avoid context window issues
         // Using a new session prevents context accumulation from previous calls
         let freshSession = LanguageModelSession(model: .default)
+        
+        // Calculate day count for time range context
+        let dayCount = DateRangeCalculator.getDayCount(for: DateRangeType(rawValue: rangeType) ?? .weekly)
         
         // Build comprehensive prompt with all efficiency metrics
         let heartHealthStr = heartHealthEfficiency != nil ? String(format: "%.1f bpm/min", heartHealthEfficiency!) : "N/A"
@@ -209,6 +438,8 @@ class AppleIntelligence: ObservableObject {
         
         let prompt = """
         EFFICIENCY ANALYSIS
+        
+        \(createTimeRangeContext(rangeType: rangeType, dayCount: dayCount))
         
         User Profile:
         - Goals: \(profile.fitnessGoals.map { $0.rawValue }.joined(separator: ", "))
@@ -566,6 +797,93 @@ class AppleIntelligence: ObservableObject {
         )
     }
     
+    /// Generate efficiency insights using Groq API
+    private func generateEfficiencyInsightWithGroq(
+        profile: UserProfile,
+        workoutEfficiency: Double,
+        heartHealthEfficiency: Double?,
+        fitnessGains: Double?,
+        sleepEfficiency: Double?,
+        hasWorkouts: Bool,
+        rangeType: String
+    ) async -> EfficiencyInsights {
+        logger.info("🌐 [Groq] Generating efficiency insight for \(rangeType)")
+        
+        // Calculate day count for time range context
+        let dayCount = DateRangeCalculator.getDayCount(for: DateRangeType(rawValue: rangeType) ?? .weekly)
+        
+        // Build the same prompt as Apple Intelligence version
+        let heartHealthStr = heartHealthEfficiency != nil ? String(format: "%.1f bpm/min", heartHealthEfficiency!) : "N/A"
+        let fitnessStr = fitnessGains != nil ? String(format: "%.2f VO₂/%@", fitnessGains!, hasWorkouts ? "workout" : "day") : "N/A"
+        let sleepStr = sleepEfficiency != nil ? String(format: "%.0f%%", sleepEfficiency!) : "N/A"
+        
+        let prompt = """
+        EFFICIENCY ANALYSIS
+        
+        \(createTimeRangeContext(rangeType: rangeType, dayCount: dayCount))
+        
+        User Profile:
+        - Goals: \(profile.fitnessGoals.map { $0.rawValue }.joined(separator: ", "))
+        - Age: \(profile.age.map { "\($0)" } ?? "unknown"), Gender: \(profile.gender.rawValue)
+        - Current Weight: \(String(format: "%.1f", profile.weight))kg, Target: \(String(format: "%.1f", profile.targetWeight))kg
+        
+        Efficiency Metrics (Period: \(rangeType)):
+        1. Workout Efficiency: \(String(format: "%.1f", workoutEfficiency)) cal/min
+           - Calculated as: total calories burned / total workout minutes
+        
+        2. Heart Health Efficiency: \(heartHealthStr) bpm/min
+           - Calculated as: heart rate drop 1 minute after workout ends
+        
+        3. Fitness Gains: \(fitnessStr) VO₂/\(hasWorkouts ? "workout" : "day")
+           - Calculated as: VO₂ Max per \(hasWorkouts ? "workout" : "active day")
+        
+        4. Sleep Efficiency: \(sleepStr)%
+           - Calculated as: (time asleep / time in bed) × 100
+           - This doen not measures  total sleep duration
+           - Focus insights on: restlessness, time spent awake in bed, sleep disruptions, quality of sleep periods
+        
+        IMPORTANT INTERPRETATION GUIDELINES:
+        - Each metric measures a SPECIFIC aspect: intensity, recovery speed, improvement rate, or sleep quality
+        - Do NOT conflate these metrics with related but different concepts (e.g., sleep efficiency ≠ sleep duration)
+        - Base insights on what each metric ACTUALLY measures, not on assumptions about what you think it should mean
+        - For sleep efficiency: provide actionable advice about reducing restlessness, improving sleep environment, or addressing sleep disruptions - NOT about getting more sleep
+        
+        You MUST provide exactly 3 sections in this EXACT format (separated by blank lines):
+        
+        OVERALL INSIGHT:
+        [One concise sentence summarizing overall efficiency status]
+        
+        AREAS FOR IMPROVEMENT:
+        1. [Specific area] - [Actionable recommendation]
+        2. [Specific area] - [Actionable recommendation]
+        [Add more items as needed]
+        
+        WHAT'S WORKING WELL:
+        [What's performing well and should be maintained - be specific about which metrics are improving]
+        
+        REQUIREMENTS:
+        - You MUST include all 3 sections above
+        - Each section header must be exactly as shown (OVERALL INSIGHT:, AREAS FOR IMPROVEMENT:, WHAT'S WORKING WELL:)
+        - Separate each section with a blank line
+        - Be concise and actionable
+        """
+        
+        do {
+            let response = try await callGroqAPI(prompt: prompt, temperature: 0.7, maxTokens: 1000)
+            logger.info("✅ [Groq] Efficiency insight generated (\(response.count) chars)")
+            return parseEfficiencyInsights(response)
+        } catch {
+            logger.error("❌ [Groq] Efficiency insight error: \(error.localizedDescription)")
+            // Return invalid insights - will show refresh button in UI
+            return EfficiencyInsights(
+                overallAssessment: "",
+                areasForImprovement: [],
+                whatIsWorkingWell: "",
+                isValid: false
+            )
+        }
+    }
+    
     
     // MARK: - Foundation Models Integration (iOS 26.0+)
     
@@ -600,12 +918,41 @@ class AppleIntelligence: ObservableObject {
         dayCount: Int,
         avgStepsPerDay: Double = 0  // Optional - for metrics snapshot
     ) async -> ComprehensiveRecommendations? {
-        guard session != nil else {
-            logger.warning("⚠️ Foundation Models not available - comprehensive recommendations unavailable")
-            print("❌ [AI] Foundation Models session is nil - cannot generate recommendations")
-            return nil
+        // Route to appropriate API based on availability
+        if useAppleIntelligence, let session = session {
+            logger.info("🔵 [Routing] Using Apple Intelligence for comprehensive recommendations")
+            return await generateComprehensiveRecommendationsWithAppleIntelligence(
+                profile: profile,
+                patternInsights: patternInsights,
+                bodyCompositionPrediction: bodyCompositionPrediction,
+                rangeType: rangeType,
+                dayCount: dayCount,
+                avgStepsPerDay: avgStepsPerDay,
+                session: session
+            )
+        } else {
+            logger.info("🟢 [Routing] Using Groq API for comprehensive recommendations")
+            return await generateComprehensiveRecommendationsWithGroq(
+                profile: profile,
+                patternInsights: patternInsights,
+                bodyCompositionPrediction: bodyCompositionPrediction,
+                rangeType: rangeType,
+                dayCount: dayCount,
+                avgStepsPerDay: avgStepsPerDay
+            )
         }
-        
+    }
+    
+    /// Generate comprehensive recommendations using Apple Intelligence
+    private func generateComprehensiveRecommendationsWithAppleIntelligence(
+        profile: UserProfile,
+        patternInsights: PatternInsights,
+        bodyCompositionPrediction: BodyCompositionPrediction,
+        rangeType: String,
+        dayCount: Int,
+        avgStepsPerDay: Double,
+        session: LanguageModelSession
+    ) async -> ComprehensiveRecommendations? {
         logger.info("🎯 [AI] Generating comprehensive recommendations for \(rangeType)")
         print("🎯 [AI] Starting comprehensive recommendations generation for \(rangeType)")
         
@@ -693,6 +1040,98 @@ class AppleIntelligence: ObservableObject {
                 logger.warning("⚠️ Context window exceeded - consider splitting into 2 calls")
                 print("⚠️ [AI] Context window exceeded - prompt might be too long")
             }
+            return nil
+        }
+    }
+    
+    /// Generate comprehensive recommendations using Groq API
+    private func generateComprehensiveRecommendationsWithGroq(
+        profile: UserProfile,
+        patternInsights: PatternInsights,
+        bodyCompositionPrediction: BodyCompositionPrediction,
+        rangeType: String,
+        dayCount: Int,
+        avgStepsPerDay: Double
+    ) async -> ComprehensiveRecommendations? {
+        logger.info("🎯 [Groq] Generating comprehensive recommendations for \(rangeType)")
+        print("🎯 [Groq] Starting comprehensive recommendations generation for \(rangeType)")
+        
+        // Load previous recommendation history for this range type
+        let previousRecommendation = await historyStorage.getLastRecommendation(for: rangeType)
+        if let previous = previousRecommendation {
+            let daysAgo = Calendar.current.dateComponents([.day], from: previous.generatedAt, to: Date()).day ?? 0
+            logger.info("📚 [History] Found previous recommendation from \(daysAgo) days ago")
+        } else {
+            logger.info("📚 [History] No previous recommendation found - first time for \(rangeType)")
+        }
+        
+        // Create metrics snapshot for comparison
+        let metricsSnapshot = createMetricsSnapshot(
+            patternInsights: patternInsights,
+            bodyCompositionPrediction: bodyCompositionPrediction,
+            dayCount: dayCount,
+            avgStepsPerDay: avgStepsPerDay
+        )
+        
+        // Build period analyzed string
+        let periodAnalyzed = createPeriodAnalyzedString(rangeType: rangeType, dayCount: dayCount)
+        
+        // Build optimized prompt with history context (same as Apple Intelligence)
+        let prompt = buildComprehensivePrompt(
+            profile: profile,
+            patternInsights: patternInsights,
+            bodyCompositionPrediction: bodyCompositionPrediction,
+            rangeType: rangeType,
+            dayCount: dayCount,
+            previousRecommendation: previousRecommendation,
+            currentMetrics: metricsSnapshot
+        )
+        
+        do {
+            logger.info("🔄 [Groq] Calling Groq API for comprehensive recommendations...")
+            logger.debug("📝 [Groq] Prompt length: \(prompt.count) chars (~\(prompt.count / 4) tokens)")
+            
+            let response = try await callGroqAPI(prompt: prompt, temperature: 0.7, maxTokens: 2000)
+            
+            logger.info("✅ [Groq] Comprehensive recommendations received (\(response.count) chars)")
+            logger.debug("📝 [Groq] Raw response:\n\(response)")
+            
+            // Parse the response (same parser as Apple Intelligence)
+            var recommendations = parseComprehensiveRecommendations(response)
+            
+            // If no recommendations were parsed, return nil
+            guard !recommendations.topRecommendations.isEmpty else {
+                logger.warning("⚠️ [Groq] No recommendations parsed from response")
+                print("⚠️ [Groq] PARSING FAILED - No recommendations found in response!")
+                print("⚠️ [Groq] Response length: \(response.count) chars")
+                print("⚠️ [Groq] First 1000 chars of response:\n\(response.prefix(1000))")
+                return nil
+            }
+            
+            recommendations.analyzedPeriod = periodAnalyzed
+            
+            // Save to history
+            let historyEntry = RecommendationHistoryEntry(
+                recommendations: recommendations,
+                rangeType: rangeType,
+                periodAnalyzed: periodAnalyzed,
+                metricsSnapshot: metricsSnapshot
+            )
+            
+            do {
+                try await historyStorage.save(historyEntry)
+                logger.info("💾 [History] Saved recommendation to history")
+            } catch {
+                logger.error("❌ [History] Failed to save recommendation: \(error.localizedDescription)")
+                // Continue anyway - history save failure shouldn't block recommendations
+            }
+            
+            logger.info("✨ [Groq] Parsed comprehensive recommendations successfully (\(recommendations.topRecommendations.count) recommendations)")
+            
+            return recommendations
+        } catch {
+            logger.error("❌ [Groq] Comprehensive recommendations error: \(error.localizedDescription)")
+            print("❌ [Groq] ERROR generating recommendations: \(error.localizedDescription)")
             return nil
         }
     }
@@ -905,6 +1344,8 @@ class AppleIntelligence: ObservableObject {
         return """
         You are a certified fitness coach analyzing a user's health data. Generate 4-5 PRIORITIZED, actionable recommendations.
         
+        \(createTimeRangeContext(rangeType: rangeType, dayCount: dayCount))
+        
         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         AVAILABLE METRICS (WHITELIST - ONLY USE THESE):
         \(availableMetrics.joined(separator: ", "))
@@ -1085,6 +1526,68 @@ class AppleIntelligence: ObservableObject {
         let year = yearFormatter.string(from: endDate)
         
         return "\(startStr) - \(endStr), \(year)"
+    }
+    
+    /// Create time range context description for AI prompts
+    /// This helps the AI understand what time period it's analyzing
+    private func createTimeRangeContext(rangeType: String, dayCount: Int) -> String {
+        switch rangeType {
+        case "Today":
+            return """
+            TIME RANGE CONTEXT:
+            You are analyzing data for TODAY ONLY (just today's data, not a week or month).
+            - All metrics, workouts, and activities shown are from today
+            - Recommendations should focus on what happened today and immediate next steps
+            - Do not suggest weekly or monthly goals - focus on today's performance and immediate actions
+            - If today's data is limited, acknowledge that and provide context-appropriate insights
+            """
+        case "This Week":
+            return """
+            TIME RANGE CONTEXT:
+            You are analyzing data for THIS WEEK (the current calendar week, approximately 7 days).
+            - All metrics, workouts, and activities shown are from this week
+            - Recommendations should focus on weekly patterns and weekly goals
+            - Compare performance across days within this week
+            - Provide insights about weekly consistency and trends
+            """
+        case "This Month":
+            return """
+            TIME RANGE CONTEXT:
+            You are analyzing data for THIS MONTH (the current calendar month, approximately 30 days).
+            - All metrics, workouts, and activities shown are from this month
+            - Recommendations should focus on monthly trends and monthly goals
+            - Look for patterns and trends over the course of the month
+            - Provide insights about monthly progress and consistency
+            """
+        case "6 Months":
+            return """
+            TIME RANGE CONTEXT:
+            You are analyzing data for THE LAST 6 MONTHS (approximately \(dayCount) days).
+            - All metrics, workouts, and activities shown are from the past 6 months
+            - Recommendations should focus on long-term trends and patterns
+            - Look for significant changes, plateaus, or improvements over this extended period
+            - Provide insights about long-term progress and sustained habits
+            - Compare early months vs recent months to identify trends
+            """
+        case "This Year":
+            return """
+            TIME RANGE CONTEXT:
+            You are analyzing data for THIS YEAR (the current calendar year, approximately \(dayCount) days so far).
+            - All metrics, workouts, and activities shown are from this year
+            - Recommendations should focus on annual trends and long-term goals
+            - Look for seasonal patterns, long-term progress, and year-over-year insights
+            - Provide insights about annual progress and major milestones
+            - Compare different periods within the year to identify trends
+            """
+        default:
+            return """
+            TIME RANGE CONTEXT:
+            You are analyzing data for a period of \(dayCount) days.
+            - All metrics, workouts, and activities shown are from this time period
+            - Recommendations should be appropriate for this time scale
+            - Consider the length of the period when providing insights and goals
+            """
+        }
     }
     
     private func parseComprehensiveRecommendations(_ response: String) -> ComprehensiveRecommendations {

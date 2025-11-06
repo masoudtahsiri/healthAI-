@@ -118,3 +118,12 @@ Temporary Items
 build_warnings.log
 build.log
 
+# Test files with API keys
+test_groq.sh
+test_groq_api.swift
+
+# Environment files
+.env
+.env.local
+*.env
+
