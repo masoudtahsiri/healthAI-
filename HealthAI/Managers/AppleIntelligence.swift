@@ -114,11 +114,25 @@ class AppleIntelligence: ObservableObject {
     
     // MARK: - Groq API Key Management
     
-    /// Load Groq API key from Keychain
-    /// Returns empty string if key is not found in Keychain
+    /// Load Groq API key from build-time configuration (Info.plist), environment variables, or Keychain
+    /// Returns empty string if key is not found
     /// API keys should NEVER be hardcoded in source code
     private static func loadGroqAPIKey() -> String {
-        // Load from Keychain only - no hardcoded fallback
+        // First, try to load from Info.plist (build-time configuration)
+        // This is set via Xcode build settings or CI/CD environment variables
+        if let infoPlistKey = Bundle.main.object(forInfoDictionaryKey: "GROQ_API_KEY") as? String,
+           !infoPlistKey.isEmpty, infoPlistKey != "$(GROQ_API_KEY)" {
+            // Only use if it's not the placeholder value
+            return infoPlistKey
+        }
+        
+        // Try environment variable (for Xcode Cloud/CI/CD)
+        if let envKey = ProcessInfo.processInfo.environment["GROQ_API_KEY"],
+           !envKey.isEmpty {
+            return envKey
+        }
+        
+        // Fallback to Keychain (for local development/testing)
         if let keychainKey = Self.getKeychainValue(for: "groq_api_key"), !keychainKey.isEmpty {
             return keychainKey
         }

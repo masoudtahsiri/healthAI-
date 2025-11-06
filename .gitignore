@@ -127,3 +127,5 @@ test_groq_api.swift
 .env.local
 *.env
 
+# Info.plist with API keys - keep local version out of git
+HealthAI/Info.plist
