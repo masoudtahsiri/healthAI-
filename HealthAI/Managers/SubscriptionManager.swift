@@ -23,6 +23,35 @@ class SubscriptionManager: ObservableObject {
             await loadProducts()
             await checkSubscriptionStatus()
         }
+        
+        // Listen for transaction updates at launch
+        Task {
+            await listenForTransactionUpdates()
+        }
+    }
+    
+    // Listen for transaction updates to catch any missed purchases
+    private func listenForTransactionUpdates() async {
+        for await result in Transaction.updates {
+            do {
+                let transaction = try checkVerified(result)
+                await transaction.finish()
+                await checkSubscriptionStatus()
+                print("✅ [Subscription] Processed transaction update: \(transaction.id)")
+            } catch {
+                print("❌ [Subscription] Failed to verify transaction update: \(error)")
+            }
+        }
+    }
+    
+    // Helper to verify transaction
+    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+        switch result {
+        case .unverified:
+            throw SubscriptionError.unverifiedTransaction
+        case .verified(let safe):
+            return safe
+        }
     }
     
     // Load products from App Store
@@ -71,13 +100,12 @@ class SubscriptionManager: ObservableObject {
         
         switch result {
         case .success(let verification):
-            switch verification {
-            case .verified(let transaction):
-                // Transaction is verified
+            do {
+                let transaction = try checkVerified(verification)
                 await transaction.finish()
                 await checkSubscriptionStatus()
                 return true
-            case .unverified(_, let error):
+            } catch {
                 print("❌ [Subscription] Unverified transaction: \(error)")
                 throw SubscriptionError.unverifiedTransaction
             }
@@ -129,4 +157,6 @@ enum SubscriptionError: LocalizedError {
         }
     }
 }
+
+
 

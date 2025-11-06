@@ -1,7 +1,9 @@
 import SwiftUI
 import Charts
 import HealthKit
+#if canImport(FoundationModels)
 import FoundationModels
+#endif
 import UIKit
 
 struct DashboardView: View {
@@ -17,8 +19,20 @@ struct DashboardView: View {
     @State private var isLoadingAI = false
     @State private var isLoadingRecommendations = false
     @State private var errorMessage: String?
-    @State private var lastAutoRefresh: Date? = nil
-    @State private var refreshTimer = Timer.publish(every: 1800, on: .main, in: .common).autoconnect()
+    @State private var pullToRefreshCooldownMessage: String?
+    
+    // Persistent storage for pull-to-refresh timestamp
+    private func getLastPullToRefreshDate() -> Date? {
+        UserDefaults.standard.object(forKey: "DashboardView.lastPullToRefreshDate") as? Date
+    }
+    
+    private func setLastPullToRefreshDate(_ date: Date?) {
+        if let date = date {
+            UserDefaults.standard.set(date, forKey: "DashboardView.lastPullToRefreshDate")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "DashboardView.lastPullToRefreshDate")
+        }
+    }
     
     // Date range selection
     @State private var selectedRange: DateRangeType = .weekly
@@ -78,6 +92,24 @@ struct DashboardView: View {
                             if let error = errorMessage {
                                 ErrorView(message: error)
                                     .frame(maxWidth: .infinity)
+                            }
+                            
+                            // Pull-to-refresh cooldown message
+                            if let cooldownMessage = pullToRefreshCooldownMessage {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "clock.fill")
+                                        .foregroundColor(.orange)
+                                    Text(cooldownMessage)
+                                        .font(.responsiveBody())
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal, adaptivePadding)
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.orange.opacity(0.1))
+                                )
+                                .frame(maxWidth: .infinity)
                             }
                             
                             if let insight = healthInsight {
@@ -204,35 +236,94 @@ struct DashboardView: View {
         }
         .onChange(of: scenePhase) { oldValue, newValue in
             if newValue == .active {
-                Task { await autoRefreshIfNeeded(reason: "foreground") }
+                Task { await handleAppForeground() }
             }
         }
-        .onReceive(refreshTimer) { _ in
-            Task { await autoRefreshIfNeeded(reason: "30min-timer") }
-        }
         .refreshable {
-            await refreshData()
+            await handlePullToRefresh()
         }
     }
-    private func autoRefreshIfNeeded(reason: String) async {
+    /// Handle app coming to foreground - check if cache needs refresh based on 1-hour rule
+    private func handleAppForeground() async {
+        print("🔄 [Foreground] App came to foreground, checking cache validity...")
+        
+        // Check if HealthKit cache needs refresh (1-hour rule)
+        if appState.healthDataCache.needsRefresh() {
+            print("♻️ [Foreground] Cache expired (>1 hour), refreshing data...")
+            await loadAllDataIntoCache()
+        } else {
+            print("📦 [Foreground] Cache still valid (<1 hour), using cached data")
+            // Just load from cache, no refresh needed
+            loadDataFromCache()
+        }
+    }
+    
+    /// Handle pull-to-refresh with 15-minute cooldown and countdown message
+    private func handlePullToRefresh() async {
         let now = Date()
-        if let last = lastAutoRefresh, now.timeIntervalSince(last) < 900 { return }
-        print("♻️ [AutoRefresh] Triggered by: \(reason)")
-        await refreshData()
-        await MainActor.run { lastAutoRefresh = now }
+        let cooldownSeconds: TimeInterval = 900 // 15 minutes
+        
+        // Check if cooldown is active
+        if let lastRefresh = getLastPullToRefreshDate() {
+            let timeSinceLastRefresh = now.timeIntervalSince(lastRefresh)
+            
+            // Edge case: if time went backwards (device time changed), allow refresh
+            guard timeSinceLastRefresh >= 0 else {
+                print("⚠️ [PullToRefresh] Time went backwards, allowing refresh")
+                setLastPullToRefreshDate(now)
+                await loadAllDataIntoCache()
+                return
+            }
+            
+            if timeSinceLastRefresh < cooldownSeconds {
+                // Still in cooldown - calculate remaining time
+                let remainingSeconds = cooldownSeconds - timeSinceLastRefresh
+                let remainingMinutes = max(1, Int(ceil(remainingSeconds / 60))) // Ensure at least 1 minute
+                
+                await MainActor.run {
+                    pullToRefreshCooldownMessage = "Please wait \(remainingMinutes) minute\(remainingMinutes == 1 ? "" : "s") before refreshing again"
+                }
+                
+                print("⏱️ [PullToRefresh] Cooldown active: \(remainingMinutes) minutes remaining")
+                
+                // Show message for 3 seconds so user can read it
+                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                await MainActor.run {
+                    pullToRefreshCooldownMessage = nil
+                }
+                return
+            }
+        }
+        
+        // Cooldown passed or no previous refresh - allow refresh
+        print("🔄 [PullToRefresh] Refreshing data...")
+        await loadAllDataIntoCache()
+        
+        // Update pull-to-refresh timestamp
+        setLastPullToRefreshDate(now)
     }
     
     // MARK: - Cache-Based Loading
     
     private func loadHealthDataWithCache() {
-        // Check if cache exists and is fresh
-        if appState.healthDataCache.isDataLoaded && !appState.healthDataCache.needsRefresh() {
-            print("📦 [Cache] Using cached data")
+        // First-time app open: if no cache exists, always fetch
+        if !appState.healthDataCache.isDataLoaded || appState.healthDataCache.lastFetchedDate == nil {
+            print("🔄 [Cache] First-time load or no cache, fetching data...")
+            Task {
+                await loadAllDataIntoCache()
+            }
+            return
+        }
+        
+        // Check if cache is fresh (1-hour rule)
+        if !appState.healthDataCache.needsRefresh() {
+            print("📦 [Cache] Using cached data (valid for \(Int(Date().timeIntervalSince(appState.healthDataCache.lastFetchedDate ?? Date()) / 60)) minutes)")
             loadDataFromCache()
             return
         }
         
-        // Load all data into cache (only if not already loading)
+        // Cache expired (>1 hour), fetch fresh data
+        print("🔄 [Cache] Cache expired, fetching fresh data...")
         Task {
             await loadAllDataIntoCache()
         }
@@ -288,9 +379,8 @@ struct DashboardView: View {
         
         print("✅ [Cache] Data loaded into cache")
         
-        // Clear AI cache when HealthKit data is refreshed
+        // Mark HealthKit refresh (invalidates only stale AI cache entries, preserves fresh ones)
         if let appleAI = appState.appleIntelligence {
-            appleAI.clearAICache()
             appleAI.markHealthKitRefreshed(fetchedAt: now)
         }
         
@@ -925,15 +1015,9 @@ struct DashboardView: View {
         }
     }
     
+    /// Legacy refresh method - redirects to optimized pull-to-refresh handler
     private func refreshData() async {
-        // Debounce manual refresh if last fetch < 5 minutes ago
-        let now = Date()
-        if let last = appState.healthDataCache.lastFetchedDate, now.timeIntervalSince(last) < 300 {
-            print("⏱️ [Refresh] Skipped: last fetch <5 min ago (")
-            return
-        }
-        print("🔄 [Refresh] Pull to refresh triggered")
-        await loadAllDataIntoCache()
+        await handlePullToRefresh()
     }
     
     // MARK: - Targeted Refresh Functions

@@ -1,18 +1,24 @@
 import Foundation
 import HealthKit
-import FoundationModels
 import OSLog
+
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
 
 /// Apple Intelligence integration for on-device health analysis
 /// Uses Apple's Foundation Models Framework for advanced AI analysis on supported devices
 /// Falls back to Groq API for devices without Apple Intelligence support
-@available(iOS 26.0, *)
 class AppleIntelligence: ObservableObject {
     
     // MARK: - Logging
     private let logger = Logger(subsystem: "com.healthai.app", category: "AppleIntelligence")
     
-    private let session: LanguageModelSession?
+    #if canImport(FoundationModels)
+    private var _sessionStorage: Any?
+    #else
+    private var _sessionStorage: Any? = nil
+    #endif
     private let useAppleIntelligence: Bool
     
     // MARK: - Recommendation History Storage
@@ -30,18 +36,28 @@ class AppleIntelligence: ObservableObject {
         let hasAppleIntelligence = Self.isAppleIntelligenceAvailable()
         self.useAppleIntelligence = hasAppleIntelligence
         
+        #if canImport(FoundationModels)
         if hasAppleIntelligence {
             // Initialize Apple Intelligence features
             logger.info("🔵 [API Selection] Apple Intelligence detected and available")
             logger.info("✅ Initializing Apple Intelligence with Foundation Models")
-            self.session = LanguageModelSession(model: .default)
-            logger.info("LanguageModelSession initialized successfully")
+            if #available(iOS 26.0, *) {
+                self._sessionStorage = LanguageModelSession(model: .default)
+                logger.info("LanguageModelSession initialized successfully")
+            } else {
+                self._sessionStorage = nil
+            }
         } else {
             // Use Groq API fallback
             logger.info("🟢 [API Selection] Apple Intelligence not available, using Groq API fallback")
             logger.info("   Reason: Device doesn't meet requirements (iOS 26.0+ AND A17 Pro/M3+)")
-            self.session = nil
+            self._sessionStorage = nil
         }
+        #else
+        // FoundationModels not available - use Groq API
+        logger.info("🟢 [API Selection] FoundationModels not available, using Groq API fallback")
+        self._sessionStorage = nil
+        #endif
         
         // Load Groq API key from Keychain (or use default for now)
         self.groqAPIKey = Self.loadGroqAPIKey()
@@ -55,11 +71,12 @@ class AppleIntelligence: ObservableObject {
     
     /// Check if device supports Apple Intelligence (iOS 26.0+ AND A17 Pro or newer)
     private static func isAppleIntelligenceAvailable() -> Bool {
-        // Check iOS version
+        // Check iOS version first
         guard #available(iOS 26.0, *) else {
             return false
         }
         
+        #if canImport(FoundationModels)
         // Check chip model (A17 Pro or newer, or M3/M4+)
         let chipModel = getChipModel()
         let isA17ProOrNewer = isA17ProOrAbove(chipModel: chipModel)
@@ -68,11 +85,13 @@ class AppleIntelligence: ObservableObject {
             return false
         }
         
-        // Try to initialize FoundationModels to verify it's actually available
-        // Note: This check happens at runtime, so if FoundationModels isn't available,
-        // the initialization will fail gracefully
-        let testSession = LanguageModelSession(model: .default)
-        return testSession != nil
+        // If we reach here, we're on iOS 26.0+ with A17 Pro+ chip
+        // FoundationModels should be available
+        return true
+        #else
+        // FoundationModels framework not available
+        return false
+        #endif
     }
     
     /// Get device chip model identifier
@@ -398,7 +417,8 @@ class AppleIntelligence: ObservableObject {
         rangeType: String
     ) async -> EfficiencyInsights {
         // Route to appropriate API based on availability
-        if useAppleIntelligence, let session = session {
+        #if canImport(FoundationModels)
+        if useAppleIntelligence, #available(iOS 26.0, *), let session = _sessionStorage as? LanguageModelSession {
             logger.info("🔵 [Routing] Using Apple Intelligence for efficiency insights")
             return await generateEfficiencyInsightWithAppleIntelligence(
                 profile: profile,
@@ -410,21 +430,24 @@ class AppleIntelligence: ObservableObject {
                 rangeType: rangeType,
                 session: session
             )
-        } else {
-            logger.info("🟢 [Routing] Using Groq API for efficiency insights")
-            return await generateEfficiencyInsightWithGroq(
-                profile: profile,
-                workoutEfficiency: workoutEfficiency,
-                heartHealthEfficiency: heartHealthEfficiency,
-                fitnessGains: fitnessGains,
-                sleepEfficiency: sleepEfficiency,
-                hasWorkouts: hasWorkouts,
-                rangeType: rangeType
-            )
         }
+        #endif
+        
+        // Fallback to Groq API
+        logger.info("🟢 [Routing] Using Groq API for efficiency insights")
+        return await generateEfficiencyInsightWithGroq(
+            profile: profile,
+            workoutEfficiency: workoutEfficiency,
+            heartHealthEfficiency: heartHealthEfficiency,
+            fitnessGains: fitnessGains,
+            sleepEfficiency: sleepEfficiency,
+            hasWorkouts: hasWorkouts,
+            rangeType: rangeType
+        )
     }
     
     /// Generate efficiency insights using Apple Intelligence
+    @available(iOS 26.0, *)
     private func generateEfficiencyInsightWithAppleIntelligence(
         profile: UserProfile,
         workoutEfficiency: Double,
@@ -440,7 +463,11 @@ class AppleIntelligence: ObservableObject {
         
         // Create a fresh session for efficiency insights to avoid context window issues
         // Using a new session prevents context accumulation from previous calls
+        #if canImport(FoundationModels)
         let freshSession = LanguageModelSession(model: .default)
+        #else
+        fatalError("FoundationModels not available")
+        #endif
         
         // Calculate day count for time range context
         let dayCount = DateRangeCalculator.getDayCount(for: DateRangeType(rawValue: rangeType) ?? .weekly)
@@ -502,6 +529,7 @@ class AppleIntelligence: ObservableObject {
         """
         
         do {
+            #if canImport(FoundationModels)
             let promptObj = Prompt(prompt)
             logger.info("🔄 [AI] Generating efficiency insight...")
             
@@ -509,10 +537,20 @@ class AppleIntelligence: ObservableObject {
             
             logger.info("✅ [AI] Efficiency insight generated (\(response.content.count) chars)")
             return parseEfficiencyInsights(response.content)
+            #else
+            // FoundationModels not available - should not reach here
+            return EfficiencyInsights(
+                overallAssessment: "",
+                areasForImprovement: [],
+                whatIsWorkingWell: "",
+                isValid: false
+            )
+            #endif
         } catch {
             logger.error("❌ [AI] Efficiency insight error: \(error.localizedDescription)")
             
             // If error is due to concurrent call, wait and retry once
+            #if canImport(FoundationModels)
             if error.localizedDescription.contains("second time before the model finished") {
                 logger.info("⏳ [AI] Waiting for previous response to finish...")
                 var waitCount = 0
@@ -533,6 +571,7 @@ class AppleIntelligence: ObservableObject {
                     }
                 }
             }
+            #endif
             
             // Return invalid insights - will show refresh button in UI
             return EfficiencyInsights(
@@ -902,6 +941,7 @@ class AppleIntelligence: ObservableObject {
     // MARK: - Foundation Models Integration (iOS 26.0+)
     
     /// Safely call session.respond(to:) with waiting for existing responses
+    @available(iOS 26.0, *)
     private func safeRespond(
         session: LanguageModelSession,
         prompt: Prompt,
@@ -933,7 +973,8 @@ class AppleIntelligence: ObservableObject {
         avgStepsPerDay: Double = 0  // Optional - for metrics snapshot
     ) async -> ComprehensiveRecommendations? {
         // Route to appropriate API based on availability
-        if useAppleIntelligence, let session = session {
+        #if canImport(FoundationModels)
+        if useAppleIntelligence, #available(iOS 26.0, *), let session = _sessionStorage as? LanguageModelSession {
             logger.info("🔵 [Routing] Using Apple Intelligence for comprehensive recommendations")
             return await generateComprehensiveRecommendationsWithAppleIntelligence(
                 profile: profile,
@@ -944,20 +985,23 @@ class AppleIntelligence: ObservableObject {
                 avgStepsPerDay: avgStepsPerDay,
                 session: session
             )
-        } else {
-            logger.info("🟢 [Routing] Using Groq API for comprehensive recommendations")
-            return await generateComprehensiveRecommendationsWithGroq(
-                profile: profile,
-                patternInsights: patternInsights,
-                bodyCompositionPrediction: bodyCompositionPrediction,
-                rangeType: rangeType,
-                dayCount: dayCount,
-                avgStepsPerDay: avgStepsPerDay
-            )
         }
+        #endif
+        
+        // Fallback to Groq API
+        logger.info("🟢 [Routing] Using Groq API for comprehensive recommendations")
+        return await generateComprehensiveRecommendationsWithGroq(
+            profile: profile,
+            patternInsights: patternInsights,
+            bodyCompositionPrediction: bodyCompositionPrediction,
+            rangeType: rangeType,
+            dayCount: dayCount,
+            avgStepsPerDay: avgStepsPerDay
+        )
     }
     
     /// Generate comprehensive recommendations using Apple Intelligence
+    @available(iOS 26.0, *)
     private func generateComprehensiveRecommendationsWithAppleIntelligence(
         profile: UserProfile,
         patternInsights: PatternInsights,
@@ -980,7 +1024,11 @@ class AppleIntelligence: ObservableObject {
         }
         
         // Create fresh session to avoid context window issues
+        #if canImport(FoundationModels)
         let freshSession = LanguageModelSession(model: .default)
+        #else
+        fatalError("FoundationModels not available")
+        #endif
         
         // Create metrics snapshot for comparison
         let metricsSnapshot = createMetricsSnapshot(
@@ -1005,6 +1053,7 @@ class AppleIntelligence: ObservableObject {
         )
         
         do {
+            #if canImport(FoundationModels)
             let promptObj = Prompt(prompt)
             logger.info("🔄 [AI] Calling Foundation Models for comprehensive recommendations...")
             logger.debug("📝 [AI] Prompt length: \(prompt.count) chars (~\(prompt.count / 4) tokens)")
@@ -1047,6 +1096,10 @@ class AppleIntelligence: ObservableObject {
             logger.info("✨ [AI] Parsed comprehensive recommendations successfully (\(recommendations.topRecommendations.count) recommendations)")
             
             return recommendations
+            #else
+            // FoundationModels not available - should not reach here
+            return nil
+            #endif
         } catch {
             logger.error("❌ [AI] Comprehensive recommendations error: \(error.localizedDescription)")
             print("❌ [AI] ERROR generating recommendations: \(error.localizedDescription)")

@@ -25,7 +25,28 @@ class HealthDataCache {
     var dietaryCaloriesDaily: [DailyHealthMetric] = [] // Calories consumed per day
     var dietaryProteinDaily: [DailyHealthMetric] = [] // Protein per day (grams)
     
-    var lastFetchedDate: Date?
+    private var _lastFetchedDate: Date?
+    var lastFetchedDate: Date? {
+        get {
+            // Load from persistent storage if not in memory
+            if _lastFetchedDate == nil {
+                if let timestamp = UserDefaults.standard.object(forKey: "HealthDataCache.lastFetchedDate") as? Date {
+                    _lastFetchedDate = timestamp
+                }
+            }
+            return _lastFetchedDate
+        }
+        set {
+            _lastFetchedDate = newValue
+            // Persist to UserDefaults
+            if let date = newValue {
+                UserDefaults.standard.set(date, forKey: "HealthDataCache.lastFetchedDate")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "HealthDataCache.lastFetchedDate")
+            }
+        }
+    }
+    
     var isDataLoaded: Bool = false
     
     // MARK: - Filter Methods
@@ -185,11 +206,20 @@ class HealthDataCache {
         dietaryProteinDaily = []
         isDataLoaded = false
         lastFetchedDate = nil
+        // Clear persistent storage
+        UserDefaults.standard.removeObject(forKey: "HealthDataCache.lastFetchedDate")
     }
     
     /// Check if data needs to be refreshed (older than 1 hour)
     func needsRefresh() -> Bool {
         guard let lastFetched = lastFetchedDate else { return true }
+        
+        // Edge case: if time went backwards (device time changed), treat as expired
+        let timeSinceFetch = Date().timeIntervalSince(lastFetched)
+        if timeSinceFetch < 0 {
+            return true
+        }
+        
         let oneHourAgo = Date().addingTimeInterval(-3600)
         return lastFetched < oneHourAgo
     }

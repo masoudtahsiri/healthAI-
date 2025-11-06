@@ -24,9 +24,12 @@ class AppState: ObservableObject {
     let healthDataCache = HealthDataCache()
     let subscriptionManager = SubscriptionManager.shared
     
-    @available(iOS 26.0, *)
     lazy var appleIntelligence: AppleIntelligence? = {
-        return AppleIntelligence()
+        if #available(iOS 26.0, *) {
+            return AppleIntelligence()
+        } else {
+            return nil
+        }
     }()
     
     init() {

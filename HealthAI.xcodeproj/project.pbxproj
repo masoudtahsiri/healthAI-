@@ -24,10 +24,10 @@
 		A1001051 /* PatternAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001052 /* PatternAnalyzer.swift */; };
 		A1001053 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001054 /* SettingsView.swift */; };
 		A1001055 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001056 /* SplashView.swift */; };
+		AD1ADBEE2EB16A7300FEBCFC /* FoundationModels.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AD1ADBED2EB1664500FEBCFC /* FoundationModels.framework */; };
 		AD2ADBEE2EB16A7300FEBCFC /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2ADBED2EB1664500FEBCFC /* SubscriptionManager.swift */; };
 		AD3ADBEE2EB16A7300FEBCFC /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD3ADBED2EB1664500FEBCFC /* PaywallView.swift */; };
 		AD4ADBEE2EB16A7300FEBCFC /* SubscriptionGatedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD4ADBED2EB1664500FEBCFC /* SubscriptionGatedView.swift */; };
-		AD1ADBEE2EB16A7300FEBCFC /* FoundationModels.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AD1ADBED2EB1664500FEBCFC /* FoundationModels.framework */; };
 		ADAA4F642EB9516D003C0930 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = ADAA4F632EB9516D003C0930 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
@@ -41,7 +41,7 @@
 		A1001010 /* AICore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICore.swift; sourceTree = "<group>"; };
 		A1001012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1001014 /* HealthAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HealthAI.entitlements; sourceTree = "<group>"; };
-		A1001015 /* HealthAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "HealthAI.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1001015 /* HealthAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HealthAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1001020 /* AppleIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligence.swift; sourceTree = "<group>"; };
 		A1001042 /* DateRangePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateRangePicker.swift; sourceTree = "<group>"; };
 		A1001044 /* ResponsiveLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponsiveLayout.swift; sourceTree = "<group>"; };
@@ -51,10 +51,10 @@
 		A1001052 /* PatternAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternAnalyzer.swift; sourceTree = "<group>"; };
 		A1001054 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1001056 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		AD1ADBED2EB1664500FEBCFC /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/FoundationModels.framework; sourceTree = DEVELOPER_DIR; };
 		AD2ADBED2EB1664500FEBCFC /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		AD3ADBED2EB1664500FEBCFC /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		AD4ADBED2EB1664500FEBCFC /* SubscriptionGatedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionGatedView.swift; sourceTree = "<group>"; };
-		AD1ADBED2EB1664500FEBCFC /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/FoundationModels.framework; sourceTree = DEVELOPER_DIR; };
 		ADAA4F632EB9516D003C0930 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -270,9 +270,9 @@
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
-			CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-			CODE_SIGN_ENTITLEMENTS = HealthAI/HealthAI.entitlements;
-			CODE_SIGN_STYLE = Automatic;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = HealthAI/HealthAI.entitlements;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -291,7 +291,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "HealthAI+";
 				INFOPLIST_KEY_GROQ_API_KEY = "$(GROQ_API_KEY)";
-				"INFOPLIST_KEY_ITSAppUsesNonExemptEncryption" = NO;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "We need access to your health data to provide personalized insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "We'll save your fitness goals and progress to HealthKit.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -299,7 +299,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -363,7 +363,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "HealthAI+";
 				INFOPLIST_KEY_GROQ_API_KEY = "$(GROQ_API_KEY)";
-				"INFOPLIST_KEY_ITSAppUsesNonExemptEncryption" = NO;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "We need access to your health data to provide personalized insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "We'll save your fitness goals and progress to HealthKit.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -371,7 +371,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
