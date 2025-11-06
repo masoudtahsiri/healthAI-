@@ -111,3 +111,4 @@ This privacy policy complies with:
 
 **Note**: This privacy policy reflects the current implementation of HealthAI. The app uses Groq API as a fallback when Apple Intelligence is not available, and all health data processing is done to provide you with personalized health insights.
 
+

@@ -15,7 +15,7 @@ struct SplashView: View {
     private let loadingMessages = [
         "Synchronizing data...",
         "Loading your health data...",
-        "Initializing Apple Intelligence (AI)...",
+        "Initializing AI Agent....",
         "Almost ready..."
     ]
     
@@ -137,7 +137,7 @@ struct SplashView: View {
                             .opacity(textOpacity)
                             .offset(y: textOpacity == 0 ? 20 : 0)
                         
-                        Text("Powered by Apple Intelligence™")
+                        Text("Powered by AI")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white.opacity(0.8))
                             .opacity(textOpacity)

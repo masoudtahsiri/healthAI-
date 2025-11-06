@@ -20,6 +20,7 @@ struct DashboardView: View {
     @State private var isLoadingRecommendations = false
     @State private var errorMessage: String?
     @State private var pullToRefreshCooldownMessage: String?
+    @State private var showCooldownAlert = false
     
     // Persistent storage for pull-to-refresh timestamp
     private func getLastPullToRefreshDate() -> Date? {
@@ -70,7 +71,8 @@ struct DashboardView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView(.vertical, showsIndicators: false) {
+            ZStack(alignment: .top) {
+                ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
                     Section {
                         VStack(spacing: adaptiveSpacing) {
@@ -92,24 +94,6 @@ struct DashboardView: View {
                             if let error = errorMessage {
                                 ErrorView(message: error)
                                     .frame(maxWidth: .infinity)
-                            }
-                            
-                            // Pull-to-refresh cooldown message
-                            if let cooldownMessage = pullToRefreshCooldownMessage {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "clock.fill")
-                                        .foregroundColor(.orange)
-                                    Text(cooldownMessage)
-                                        .font(.responsiveBody())
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.horizontal, adaptivePadding)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color.orange.opacity(0.1))
-                                )
-                                .frame(maxWidth: .infinity)
                             }
                             
                             if let insight = healthInsight {
@@ -160,8 +144,6 @@ struct DashboardView: View {
                     } header: {
                         DateRangePicker(selectedRange: $selectedRange)
                             .frame(maxWidth: .infinity)
-                            .padding(.horizontal, horizontalSizeClass == .regular ? 24 : 16)
-                            .padding(.vertical, horizontalSizeClass == .regular ? 12 : 8)
                             .onChange(of: selectedRange) { oldValue, newValue in
                                 // Cancel any in-flight data loading
                                 currentLoadingTask?.cancel()
@@ -176,6 +158,8 @@ struct DashboardView: View {
                                 // Load data for the new range (will load cached recommendations if available)
                                 loadDataFromCache()
                             }
+                            .padding(.horizontal, horizontalSizeClass == .regular ? 24 : 16)
+                            .padding(.vertical, horizontalSizeClass == .regular ? 12 : 8)
                     }
                 }
             }
@@ -192,9 +176,20 @@ struct DashboardView: View {
                     }
                 }
             }
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .alert("", isPresented: $showCooldownAlert) {
+            Button("OK", role: .cancel) {
+                pullToRefreshCooldownMessage = nil
+                showCooldownAlert = false
+            }
+        } message: {
+            if let message = pullToRefreshCooldownMessage {
+                Text(message)
+            }
+        }
         .onAppear {
             // Increase navigation bar height to accommodate larger button
             let appearance = UINavigationBarAppearance()
@@ -271,7 +266,18 @@ struct DashboardView: View {
             guard timeSinceLastRefresh >= 0 else {
                 print("⚠️ [PullToRefresh] Time went backwards, allowing refresh")
                 setLastPullToRefreshDate(now)
+                
+                // Start refresh and ensure minimum 10-second delay
+                let startTime = Date()
                 await loadAllDataIntoCache()
+                
+                // Ensure minimum 10 seconds for loading indicator visibility
+                let elapsed = Date().timeIntervalSince(startTime)
+                let minDelay: TimeInterval = 10.0
+                if elapsed < minDelay {
+                    let remainingDelay = minDelay - elapsed
+                    try? await Task.sleep(nanoseconds: UInt64(remainingDelay * 1_000_000_000))
+                }
                 return
             }
             
@@ -280,24 +286,45 @@ struct DashboardView: View {
                 let remainingSeconds = cooldownSeconds - timeSinceLastRefresh
                 let remainingMinutes = max(1, Int(ceil(remainingSeconds / 60))) // Ensure at least 1 minute
                 
+                let message = "Your data is up to date. You can refresh again in \(remainingMinutes) minute\(remainingMinutes == 1 ? "" : "s")."
+                
+                // Set message and show alert on main thread
                 await MainActor.run {
-                    pullToRefreshCooldownMessage = "Please wait \(remainingMinutes) minute\(remainingMinutes == 1 ? "" : "s") before refreshing again"
+                    pullToRefreshCooldownMessage = message
+                    showCooldownAlert = true
+                    print("✅ [Alert] Showing cooldown alert: \(message)")
                 }
+                
+                // Small delay to ensure UI updates
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
                 
                 print("⏱️ [PullToRefresh] Cooldown active: \(remainingMinutes) minutes remaining")
                 
-                // Show message for 3 seconds so user can read it
-                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-                await MainActor.run {
-                    pullToRefreshCooldownMessage = nil
-                }
+                // Keep loading indicator visible for 4 seconds during cooldown
+                // Shorter than normal refresh since no data is being loaded
+                // Note: Alert stays visible until user presses OK
+                try? await Task.sleep(nanoseconds: 3_900_000_000) // 3.9 seconds (total 4 seconds with the 0.1s above)
+                
+                // Don't auto-dismiss - let user dismiss by pressing OK
                 return
             }
         }
         
         // Cooldown passed or no previous refresh - allow refresh
         print("🔄 [PullToRefresh] Refreshing data...")
+        
+        // Start refresh and ensure minimum 10-second delay for loading indicator visibility
+        let startTime = Date()
         await loadAllDataIntoCache()
+        
+        // Ensure minimum 10 seconds for loading indicator visibility
+        let elapsed = Date().timeIntervalSince(startTime)
+        let minDelay: TimeInterval = 10.0
+        if elapsed < minDelay {
+            let remainingDelay = minDelay - elapsed
+            print("⏱️ [PullToRefresh] Adding delay to ensure 10-second minimum: \(String(format: "%.1f", remainingDelay))s")
+            try? await Task.sleep(nanoseconds: UInt64(remainingDelay * 1_000_000_000))
+        }
         
         // Update pull-to-refresh timestamp
         setLastPullToRefreshDate(now)
@@ -3532,6 +3559,36 @@ struct MetricRowView: View {
         .padding(horizontalSizeClass == .regular ? 10 : 8)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 10 : 8))
+    }
+}
+
+// MARK: - Toast Message
+
+struct ToastMessage: View {
+    let message: String
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "clock.fill")
+                .foregroundColor(.white)
+                .font(.system(size: 18, weight: .semibold))
+            Text(message)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.orange)
+                .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 8)
+        )
+        .padding(.horizontal, horizontalSizeClass == .regular ? 40 : 20)
+        .onAppear {
+            print("🎯 [Toast] ToastMessage appeared with message: \(message)")
+        }
     }
 }
 
