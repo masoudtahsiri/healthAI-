@@ -6,17 +6,17 @@ A privacy-first health tracking app that uses HealthKit and Apple's Foundation M
 
 - **User Profile Management**: Track name, age, gender, weight, height, and fitness goals
 - **HealthKit Integration**: Read workouts, steps, heart rate, sleep, and calories
-- **AI-Powered Insights**: On-device analysis using Apple Intelligence for progress tracking and recommendations
+- **AI-Powered Insights**: On-device analysis using Apple Intelligence (iOS 26.0+) or Groq API fallback
 - **Beautiful UI**: SwiftUI interface with interactive charts
-- **Privacy First**: All processing happens on-device
+- **Privacy-Focused**: On-device processing when possible, transparent third-party usage when needed
 
 ## Requirements
 
-- **iOS 26.0+** and **iPadOS 26.0+** (Apple Intelligence support)
+- **iOS 17.6+** and **iPadOS 17.6+** (minimum deployment target)
 - **Xcode 18.0+** (latest development tools)
 - **Swift 6.0+**
-- **A17 chip or newer** (for full Apple Intelligence features)
-- **Foundation Models Framework** (included with iOS 26+)
+- **A17 chip or newer** (for Apple Intelligence features on iOS 26.0+)
+- **Foundation Models Framework** (included with iOS 26+, optional - app falls back to Groq API)
 
 ## Setup
 
@@ -39,14 +39,22 @@ Requires iOS 26.0+ or iPadOS 26.0+, and A17 chip or newer for full Apple Intelli
 
 ## Privacy
 
-All health data remains on your device. No external APIs or cloud services are used.
+HealthAI prioritizes your privacy while providing AI-powered insights:
+
+- **Apple Intelligence (iOS 26.0+)**: On supported devices (A17 Pro+), all AI processing happens entirely on-device using Apple's Foundation Models Framework - no data leaves your device
+- **Groq API Fallback**: On older devices or iOS versions, the app uses Groq API for AI analysis. Health data is sent to Groq's servers to generate insights, but is not stored or used for tracking
+- **No Tracking**: HealthAI does not track users across apps or websites
+- **Local Storage**: All health data is stored locally on your device
+
+For detailed privacy information, see our [Privacy Policy](PRIVACY.md).
 
 ## App Capabilities
 
 - HealthKit integration for reading health metrics
-- Local storage for user preferences
-- Apple Intelligence with Foundation Models Framework for analysis
-- On-device AI processing
+- Local storage for user preferences and cached data
+- Apple Intelligence with Foundation Models Framework for on-device AI (iOS 26.0+ with A17 Pro+)
+- Groq API integration for AI insights on older devices
+- Smart caching to minimize API calls and preserve privacy
 
 ## Documentation
 
