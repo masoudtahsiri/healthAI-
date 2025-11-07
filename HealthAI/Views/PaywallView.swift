@@ -115,12 +115,10 @@ struct PaywallView: View {
                                                 .font(.responsiveBody())
                                                 .foregroundColor(.secondary)
                                             
-                                            // Price per unit (if applicable)
-                                            if let period = subscription.subscriptionPeriod {
-                                                Text("Price per \(subscriptionUnitText(subscription: subscription)): \(product.displayPrice)")
-                                                    .font(.responsiveCaption())
-                                                    .foregroundColor(.secondary)
-                                            }
+                                            // Price per unit
+                                            Text("Price per \(subscriptionUnitText(subscription: subscription)): \(product.displayPrice)")
+                                                .font(.responsiveCaption())
+                                                .foregroundColor(.secondary)
                                         }
                                         .padding(.top, 4)
                                         
@@ -273,9 +271,7 @@ struct PaywallView: View {
     // MARK: - Helper Methods for Subscription Details
     
     private func subscriptionDurationText(subscription: Product.SubscriptionInfo) -> String {
-        guard let period = subscription.subscriptionPeriod else {
-            return "Subscription"
-        }
+        let period = subscription.subscriptionPeriod
         
         switch period.unit {
         case .day:
@@ -292,9 +288,7 @@ struct PaywallView: View {
     }
     
     private func subscriptionUnitText(subscription: Product.SubscriptionInfo) -> String {
-        guard let period = subscription.subscriptionPeriod else {
-            return "period"
-        }
+        let period = subscription.subscriptionPeriod
         
         switch period.unit {
         case .day:
