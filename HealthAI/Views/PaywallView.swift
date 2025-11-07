@@ -10,6 +10,15 @@ struct PaywallView: View {
     
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
+    // MARK: - Required URLs for App Store Compliance
+    // Privacy Policy URL
+    private let privacyPolicyURL = URL(string: "https://healthaiplus-app.vercel.app/healthai-privacy.html")!
+    
+    // Terms of Use (EULA):
+    // - If using Apple's standard EULA: Use the URL below (Apple's standard EULA)
+    // - If using a custom EULA: Replace with your custom EULA URL
+    private let termsOfUseURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
+    
     private var adaptiveSpacing: CGFloat {
         horizontalSizeClass == .regular ? 32 : 24
     }
@@ -82,29 +91,59 @@ struct PaywallView: View {
                     // Subscription Product
                     if let product = subscriptionManager.products.first(where: { $0.id == "com.healthai.app.pro_monthly" }) {
                         VStack(spacing: 16) {
-                            // Price Display
-                            VStack(spacing: 8) {
-                                if product.subscription != nil {
-                                    Text("3-Day Free Trial")
-                                        .font(.responsiveHeadline())
-                                        .foregroundColor(.green)
-                                    
-                                    Text("Then \(product.displayPrice)/month")
-                                        .font(.responsiveBody())
-                                        .foregroundColor(.secondary)
-                                    
-                                    Text("Cancel anytime")
-                                        .font(.responsiveCaption())
-                                        .foregroundColor(.secondary)
+                            // Subscription Details (Required by App Store)
+                            VStack(spacing: 12) {
+                                // Subscription Title
+                                if let subscription = product.subscription {
+                                    VStack(spacing: 8) {
+                                        Text(product.displayName)
+                                            .font(.system(size: horizontalSizeClass == .regular ? 24 : 20, weight: .bold))
+                                            .foregroundColor(.primary)
+                                        
+                                        // Subscription Length
+                                        Text(subscriptionDurationText(subscription: subscription))
+                                            .font(.responsiveBody())
+                                            .foregroundColor(.secondary)
+                                        
+                                        // Price Display
+                                        VStack(spacing: 4) {
+                                            Text("3-Day Free Trial")
+                                                .font(.responsiveHeadline())
+                                                .foregroundColor(.green)
+                                            
+                                            Text("Then \(product.displayPrice)/\(subscriptionUnitText(subscription: subscription))")
+                                                .font(.responsiveBody())
+                                                .foregroundColor(.secondary)
+                                            
+                                            // Price per unit (if applicable)
+                                            if let period = subscription.subscriptionPeriod {
+                                                Text("Price per \(subscriptionUnitText(subscription: subscription)): \(product.displayPrice)")
+                                                    .font(.responsiveCaption())
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
                                         .padding(.top, 4)
+                                        
+                                        Text("Cancel anytime")
+                                            .font(.responsiveCaption())
+                                            .foregroundColor(.secondary)
+                                            .padding(.top, 4)
+                                    }
                                 } else {
-                                    Text(product.displayPrice)
-                                        .font(.system(size: horizontalSizeClass == .regular ? 48 : 36, weight: .bold))
-                                        .foregroundColor(.primary)
-                                    
-                                    Text(product.description)
-                                        .font(.responsiveBody())
-                                        .foregroundColor(.secondary)
+                                    // Fallback for non-subscription products
+                                    VStack(spacing: 8) {
+                                        Text(product.displayName)
+                                            .font(.system(size: horizontalSizeClass == .regular ? 24 : 20, weight: .bold))
+                                            .foregroundColor(.primary)
+                                        
+                                        Text(product.displayPrice)
+                                            .font(.system(size: horizontalSizeClass == .regular ? 48 : 36, weight: .bold))
+                                            .foregroundColor(.primary)
+                                        
+                                        Text(product.description)
+                                            .font(.responsiveBody())
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
                             }
                             
@@ -159,14 +198,30 @@ struct PaywallView: View {
                     }
                     .padding(.top, 8)
                     
-                    // Terms and Privacy
-                    VStack(spacing: 8) {
-                        Text("By subscribing, you agree to our Terms of Service and Privacy Policy")
+                    // Terms and Privacy (Required by App Store - Must be functional links)
+                    VStack(spacing: 12) {
+                        Text("By subscribing, you agree to our")
                             .font(.responsiveCaption())
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, adaptivePadding)
+                        
+                        HStack(spacing: 8) {
+                            // Terms of Use (EULA) Link
+                            Link("Terms of Use", destination: termsOfUseURL)
+                                .font(.responsiveCaption())
+                                .foregroundColor(.blue)
+                            
+                            Text("and")
+                                .font(.responsiveCaption())
+                                .foregroundColor(.secondary)
+                            
+                            // Privacy Policy Link
+                            Link("Privacy Policy", destination: privacyPolicyURL)
+                                .font(.responsiveCaption())
+                                .foregroundColor(.blue)
+                        }
                     }
+                    .padding(.horizontal, adaptivePadding)
                     .padding(.top, 16)
                     .padding(.bottom, 40)
                 }
@@ -213,6 +268,46 @@ struct PaywallView: View {
         }
         
         isPurchasing = false
+    }
+    
+    // MARK: - Helper Methods for Subscription Details
+    
+    private func subscriptionDurationText(subscription: Product.SubscriptionInfo) -> String {
+        guard let period = subscription.subscriptionPeriod else {
+            return "Subscription"
+        }
+        
+        switch period.unit {
+        case .day:
+            return "Billed every \(period.value) \(period.value == 1 ? "day" : "days")"
+        case .week:
+            return "Billed every \(period.value) \(period.value == 1 ? "week" : "weeks")"
+        case .month:
+            return "Billed every \(period.value) \(period.value == 1 ? "month" : "months")"
+        case .year:
+            return "Billed every \(period.value) \(period.value == 1 ? "year" : "years")"
+        @unknown default:
+            return "Subscription"
+        }
+    }
+    
+    private func subscriptionUnitText(subscription: Product.SubscriptionInfo) -> String {
+        guard let period = subscription.subscriptionPeriod else {
+            return "period"
+        }
+        
+        switch period.unit {
+        case .day:
+            return period.value == 1 ? "day" : "days"
+        case .week:
+            return period.value == 1 ? "week" : "weeks"
+        case .month:
+            return period.value == 1 ? "month" : "months"
+        case .year:
+            return period.value == 1 ? "year" : "years"
+        @unknown default:
+            return "period"
+        }
     }
 }
 
